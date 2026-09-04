@@ -90,6 +90,13 @@ main{position:relative;z-index:2;padding:14px}.speech{background:#fff;border:3px
 .edit-actions{display:flex;gap:10px;margin-top:18px}
 .edit-actions button{flex:1}
 
+
+.history-item{padding:12px 0;border-bottom:3px dashed #171019}
+.history-item>div:first-child{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.history-actions{display:flex;gap:8px;margin-top:9px}
+.history-actions button{font-size:12px!important;padding:7px 10px!important;border:3px solid #171019!important;box-shadow:2px 2px #171019!important}
+.history-actions .edit-btn{background:#ffd600!important;color:#171019!important}
+.history-actions .delete-btn{background:#ff5a7d!important;color:#171019!important}
 </style>
 </head>
 <body>
@@ -121,7 +128,32 @@ function home(t){let r=data.records.at(-1),e=r&&data.exercises.find(x=>x.id===r.
 function exercises(){return header("ELIGE TU EJERCICIO","home")+`<div class="search">Buscar ejercicio... <b>⌕</b></div><div>${data.exercises.map(e=>`<button class="exercise" onclick="openEx('${e.id}')"><span>${e.icon}</span><div><b>${e.name}</b><small>${e.group}</small></div><strong>›</strong></button>`).join("")}</div>${adding?`<div class="addform"><input id="newex" placeholder="Nombre del ejercicio"><button onclick="addEx()">AÑADIR</button></div>`:`<button class="add" onclick="adding=true;render()">＋ AÑADIR EJERCICIO</button>`}`}
 function workout(){let e=data.exercises.find(x=>x.id===exid)||data.exercises[0],last=[...data.records].reverse().find(r=>r.exercise===e.id),a=last?.ara||{weight:20,reps:10},s=last?.sergio||{weight:20,reps:10};return header(e.name.toUpperCase(),"exercises")+`<div class="panel ara"><div class="name">ARA</div>${metrics("a",a)}</div><div class="middle">VS</div><div class="panel sergio"><div class="name">SERGIO</div>${metrics("s",s)}</div><button class="register" onclick="register()">¡REGISTRAR! ⚡</button><p class="note">Los datos se guardan automáticamente en este dispositivo.</p>`}
 function metrics(prefix,v){return `<div class="metrics"><label class="metric"><small>PESO (KG)</small><input id="${prefix}w" type="number" step=".5" value="${v.weight}"><div><button onclick="step('${prefix}w',-1)">−</button><button onclick="step('${prefix}w',1)">+</button></div></label><label class="metric"><small>REPETICIONES</small><input id="${prefix}r" type="number" value="${v.reps}"><div><button onclick="step('${prefix}r',-1)">−</button><button onclick="step('${prefix}r',1)">+</button></div></label></div>`}
-function progress(t){let rows=data.exercises.map(e=>{let r=data.records.filter(x=>x.exercise===e.id);return r.length?{...e,best:Math.max(...r.map(x=>x[person].weight))}:null}).filter(Boolean);return header("MI PROGRESO")+`<div class="tabs"><button class="${person==="ara"?"selp":""}" onclick="person='ara';render()">ARA</button><button class="${person==="sergio"?"selb":""}" onclick="person='sergio';render()">SERGIO</button></div><div class="stats"><div><b>${data.records.length}</b><small>SESIONES</small></div><div><b>${Math.max(t.ara,t.sergio)}</b><small>VICTORIAS</small></div><div><b>${rows.length}</b><small>EJERCICIOS</small></div></div><div class="card"><label>MEJORES MARCAS</label>${rows.map(x=>`<div class="bar"><span>${x.name}</span><i class="track"><i style="width:${Math.min(100,x.best)}%"></i></i><b>${x.best} kg</b></div>`).join("")}</div><div class="card"><label>HISTORIAL RECIENTE</label>${data.records.slice(-10).reverse().map(r=>`<div class="history"><span>${r.date}</span><b>${data.exercises.find(e=>e.id===r.exercise)?.name}</b><span>${r[person].weight} × ${r[person].reps}</span></div>`).join("")}</div>`}
+function progress(t){
+  let rows=data.exercises.map(e=>{
+    let r=data.records.filter(x=>x.exercise===e.id);
+    return r.length?{...e,best:Math.max(...r.map(x=>Number(x[person]?.weight)||0))}:null
+  }).filter(Boolean);
+  let history=data.records.slice(-10).reverse();
+  return header("MI PROGRESO")+
+  `<div class="tabs"><button class="${person==="ara"?"selp":""}" onclick="person='ara';render()">ARA</button><button class="${person==="sergio"?"selb":""}" onclick="person='sergio';render()">SERGIO</button></div>
+  <div class="stats"><div><b>${data.records.length}</b><small>SESIONES</small></div><div><b>${Math.max(t.ara,t.sergio)}</b><small>VICTORIAS</small></div><div><b>${rows.length}</b><small>EJERCICIOS</small></div></div>
+  <div class="card"><label>MEJORES MARCAS</label>${rows.map(x=>`<div class="bar"><span>${x.name}</span><i class="track"><i style="width:${Math.min(100,x.best)}%"></i></i><b>${x.best} kg</b></div>`).join("")}</div>
+  <div class="card"><label>HISTORIAL RECIENTE</label>
+  ${history.length?history.map((r,reverseIndex)=>{
+    const index=data.records.length-1-reverseIndex;
+    const e=exerciseName(r.exercise);
+    const pw=Number(r[person]?.weight)||0, pr=Number(r[person]?.reps)||0;
+    return `<div class="history-item">
+      <div><span>${r.date}</span><b>${e}</b><span>${pw} × ${pr}</span></div>
+      <div class="history-actions">
+        <button class="edit-btn" onclick="editRecord(${index})">✏️ EDITAR</button>
+        <button class="delete-btn" onclick="deleteRecord(${index})">🗑 BORRAR</button>
+      </div>
+    </div>`;
+  }).join(""):`<p class="note">Todavía no hay entrenamientos.</p>`}
+  </div>`
+}
+
 function duel(t){return header("DUELO")+`<div class="score"><div><span>ARA</span><b>${t.ara}</b></div><strong>VS</strong><div><span>SERGIO</span><b>${t.sergio}</b></div></div>${data.exercises.map(e=>{let r=data.records.filter(x=>x.exercise===e.id);if(!r.length)return"";let a=Math.max(...r.map(x=>x.ara.weight)),s=Math.max(...r.map(x=>x.sergio.weight));return `<div class="duelrow"><span class="pink">${a}</span><b>${e.name}</b><span class="blue">${s}</span><small>${a>s?"🏆 Ara":s>a?"🏆 Sergio":"🤝 Empate"}</small></div>`}).join("")}`}
 function achievements(t){
   let n=data.records.length;
@@ -202,12 +234,12 @@ function go(s){screen=s;result=null;render()}function openEx(id){exid=id;screen=
   });
   save();
   result={winner,values:{ara:{weight:aw,reps:ar},sergio:{weight:sw,reps:sr}}};
-  
+  render();
+}
+
 function editRecord(index){
   const r=data.records[index];
   if(!r)return;
-  const aWeight=Number(r.ara?.weight)||0, aReps=Number(r.ara?.reps)||0;
-  const sWeight=Number(r.sergio?.weight)||0, sReps=Number(r.sergio?.reps)||0;
   const modal=document.createElement("div");
   modal.className="edit-modal";
   modal.id="editModal";
@@ -215,10 +247,10 @@ function editRecord(index){
     <h2>EDITAR ENTRENAMIENTO</h2>
     <p style="font-weight:900;margin-top:0">${exerciseName(r.exercise)} · ${r.date}</p>
     <div class="edit-grid">
-      <label style="color:#171019">ARA — KG<input id="edit-aw" type="number" step="0.5" min="0" value="${aWeight}"></label>
-      <label style="color:#171019">ARA — REPS<input id="edit-ar" type="number" step="1" min="0" value="${aReps}"></label>
-      <label style="color:#171019">SERGIO — KG<input id="edit-sw" type="number" step="0.5" min="0" value="${sWeight}"></label>
-      <label style="color:#171019">SERGIO — REPS<input id="edit-sr" type="number" step="1" min="0" value="${sReps}"></label>
+      <label>ARA — KG<input id="edit-aw" type="number" step="0.5" min="0" value="${Number(r.ara?.weight)||0}"></label>
+      <label>ARA — REPS<input id="edit-ar" type="number" step="1" min="0" value="${Number(r.ara?.reps)||0}"></label>
+      <label>SERGIO — KG<input id="edit-sw" type="number" step="0.5" min="0" value="${Number(r.sergio?.weight)||0}"></label>
+      <label>SERGIO — REPS<input id="edit-sr" type="number" step="1" min="0" value="${Number(r.sergio?.reps)||0}"></label>
     </div>
     <div class="edit-actions">
       <button class="secondary" onclick="document.getElementById('editModal')?.remove()">CANCELAR</button>
@@ -227,32 +259,21 @@ function editRecord(index){
   </div>`;
   document.body.appendChild(modal);
 }
+
 function saveEditedRecord(index){
   const r=data.records[index];
   if(!r)return;
-  r.ara.weight=Number(document.getElementById("edit-aw").value)||0;
-  r.ara.reps=Number(document.getElementById("edit-ar").value)||0;
-  r.sergio.weight=Number(document.getElementById("edit-sw").value)||0;
-  r.sergio.reps=Number(document.getElementById("edit-sr").value)||0;
+  r.ara=r.ara||{};
+  r.sergio=r.sergio||{};
+  r.ara.weight=Number(document.getElementById("edit-aw")?.value)||0;
+  r.ara.reps=Number(document.getElementById("edit-ar")?.value)||0;
+  r.sergio.weight=Number(document.getElementById("edit-sw")?.value)||0;
+  r.sergio.reps=Number(document.getElementById("edit-sr")?.value)||0;
   save();
   document.getElementById("editModal")?.remove();
-  
-function addHistoryActions(){
-  const candidates=[...document.querySelectorAll(".history .card,.history-item,.history > div")];
-  const rows=candidates.filter(el=>!el.querySelector(".history-actions"));
-  const records=[...data.records].slice().reverse();
-  rows.slice(0,records.length).forEach((el,i)=>{
-    const idx=data.records.indexOf(records[i]);
-    if(idx<0)return;
-    const box=document.createElement("div");
-    box.className="history-actions";
-    box.innerHTML=`<button class="edit-btn" onclick="editRecord(${idx})">✏️ EDITAR</button><button class="delete-btn" onclick="deleteRecord(${idx})">🗑 BORRAR</button>`;
-    el.appendChild(box);
-  });
+  render();
 }
 
-render();
-}
 function deleteRecord(index){
   const r=data.records[index];
   if(!r)return;
@@ -262,13 +283,12 @@ function deleteRecord(index){
   save();
   render();
 }
+
 function exerciseName(id){
   const e=data.exercises.find(x=>x.id===id);
   return e?.name || id || "Ejercicio";
 }
 
-render();
-}
 function closeResult(){
   const overlay=document.getElementById("result");
   if(overlay) overlay.remove();
@@ -292,12 +312,5 @@ render();
   setTimeout(()=>splash?.remove(),3500);
 })();
 
-setTimeout(addHistoryActions,80);
-
-
-if(!window.gymsibsHistoryObserver){
-  window.gymsibsHistoryObserver=new MutationObserver(()=>setTimeout(addHistoryActions,20));
-  window.gymsibsHistoryObserver.observe(document.body,{childList:true,subtree:true});
-}
 
 </script></body></html>
