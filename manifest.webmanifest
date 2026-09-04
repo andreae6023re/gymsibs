@@ -1,0 +1,16 @@
+{
+  "name": "GYMSIBS",
+  "short_name": "GYMSIBS",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#171019",
+  "theme_color": "#ff168f",
+  "icons": [
+    {
+      "src": "assets/gymsibs-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
