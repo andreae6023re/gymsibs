@@ -74,6 +74,22 @@ main{position:relative;z-index:2;padding:14px}.speech{background:#fff;border:3px
   text-shadow:none !important;
 }
 
+
+/* GYMSIBS history actions */
+.history-item{position:relative}
+.history-actions{display:flex;gap:7px;margin-top:9px}
+.history-actions button{font-size:12px!important;padding:7px 10px!important;border-width:2px!important;box-shadow:2px 2px #171019!important}
+.history-actions .edit-btn{background:#ffd600!important;color:#171019!important}
+.history-actions .delete-btn{background:#ff5a7d!important;color:#171019!important}
+.edit-modal{position:fixed;inset:0;background:rgba(23,16,25,.82);z-index:10000;display:grid;place-items:center;padding:18px}
+.edit-card{width:min(430px,100%);background:#fff5e8;border:5px solid #171019;box-shadow:8px 8px #000;padding:20px}
+.edit-card h2{margin:0 0 15px;font-family:Bangers;font-size:34px}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.edit-grid label{font-weight:900;font-family:Arial}
+.edit-grid input{width:100%;box-sizing:border-box;margin-top:5px;padding:12px;border:3px solid #171019;font-size:20px;font-weight:900}
+.edit-actions{display:flex;gap:10px;margin-top:18px}
+.edit-actions button{flex:1}
+
 </style>
 </head>
 <body>
@@ -186,7 +202,72 @@ function go(s){screen=s;result=null;render()}function openEx(id){exid=id;screen=
   });
   save();
   result={winner,values:{ara:{weight:aw,reps:ar},sergio:{weight:sw,reps:sr}}};
+  
+function editRecord(index){
+  const r=data.records[index];
+  if(!r)return;
+  const aWeight=Number(r.ara?.weight)||0, aReps=Number(r.ara?.reps)||0;
+  const sWeight=Number(r.sergio?.weight)||0, sReps=Number(r.sergio?.reps)||0;
+  const modal=document.createElement("div");
+  modal.className="edit-modal";
+  modal.id="editModal";
+  modal.innerHTML=`<div class="edit-card">
+    <h2>EDITAR ENTRENAMIENTO</h2>
+    <p style="font-weight:900;margin-top:0">${exerciseName(r.exercise)} · ${r.date}</p>
+    <div class="edit-grid">
+      <label style="color:#171019">ARA — KG<input id="edit-aw" type="number" step="0.5" min="0" value="${aWeight}"></label>
+      <label style="color:#171019">ARA — REPS<input id="edit-ar" type="number" step="1" min="0" value="${aReps}"></label>
+      <label style="color:#171019">SERGIO — KG<input id="edit-sw" type="number" step="0.5" min="0" value="${sWeight}"></label>
+      <label style="color:#171019">SERGIO — REPS<input id="edit-sr" type="number" step="1" min="0" value="${sReps}"></label>
+    </div>
+    <div class="edit-actions">
+      <button class="secondary" onclick="document.getElementById('editModal')?.remove()">CANCELAR</button>
+      <button onclick="saveEditedRecord(${index})">GUARDAR CAMBIOS</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+function saveEditedRecord(index){
+  const r=data.records[index];
+  if(!r)return;
+  r.ara.weight=Number(document.getElementById("edit-aw").value)||0;
+  r.ara.reps=Number(document.getElementById("edit-ar").value)||0;
+  r.sergio.weight=Number(document.getElementById("edit-sw").value)||0;
+  r.sergio.reps=Number(document.getElementById("edit-sr").value)||0;
+  save();
+  document.getElementById("editModal")?.remove();
+  
+function addHistoryActions(){
+  const candidates=[...document.querySelectorAll(".history .card,.history-item,.history > div")];
+  const rows=candidates.filter(el=>!el.querySelector(".history-actions"));
+  const records=[...data.records].slice().reverse();
+  rows.slice(0,records.length).forEach((el,i)=>{
+    const idx=data.records.indexOf(records[i]);
+    if(idx<0)return;
+    const box=document.createElement("div");
+    box.className="history-actions";
+    box.innerHTML=`<button class="edit-btn" onclick="editRecord(${idx})">✏️ EDITAR</button><button class="delete-btn" onclick="deleteRecord(${idx})">🗑 BORRAR</button>`;
+    el.appendChild(box);
+  });
+}
+
+render();
+}
+function deleteRecord(index){
+  const r=data.records[index];
+  if(!r)return;
+  const name=exerciseName(r.exercise);
+  if(!confirm(`¿Borrar el entrenamiento de ${name} del ${r.date}?\\n\\nEsta acción no se puede deshacer.`))return;
+  data.records.splice(index,1);
+  save();
   render();
+}
+function exerciseName(id){
+  const e=data.exercises.find(x=>x.id===id);
+  return e?.name || id || "Ejercicio";
+}
+
+render();
 }
 function closeResult(){
   const overlay=document.getElementById("result");
@@ -210,4 +291,13 @@ render();
   setTimeout(()=>splash?.classList.add("hide"),3000);
   setTimeout(()=>splash?.remove(),3500);
 })();
+
+setTimeout(addHistoryActions,80);
+
+
+if(!window.gymsibsHistoryObserver){
+  window.gymsibsHistoryObserver=new MutationObserver(()=>setTimeout(addHistoryActions,20));
+  window.gymsibsHistoryObserver.observe(document.body,{childList:true,subtree:true});
+}
+
 </script></body></html>
