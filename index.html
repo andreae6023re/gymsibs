@@ -37,6 +37,43 @@ main{position:relative;z-index:2;padding:14px}.speech{background:#fff;border:3px
 .result-vs{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0;font-family:Arial,sans-serif;font-weight:900}
 .result-vs span{padding:8px 10px;border:3px solid #171019;box-shadow:3px 3px #171019;background:#fff5e8}
 .result-vs .pink{background:#ff168f}.result-vs .blue{background:#009fe8}.result-vs b{display:block;font-size:25px}
+
+/* GYMSIBS result contrast fix */
+.result-vs{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  margin:16px 0 !important;
+  font-family:Arial,sans-serif !important;
+  font-weight:900 !important;
+}
+.result-vs span{
+  padding:10px 12px !important;
+  border:4px solid #171019 !important;
+  box-shadow:4px 4px #171019 !important;
+  background:#fff5e8 !important;
+  color:#171019 !important;
+  text-shadow:none !important;
+  min-width:95px !important;
+  text-align:center !important;
+}
+.result-vs .pink{
+  background:#ffd1e8 !important;
+  color:#171019 !important;
+}
+.result-vs .blue{
+  background:#c7edff !important;
+  color:#171019 !important;
+}
+.result-vs b{
+  display:block !important;
+  font-size:28px !important;
+  line-height:1.05 !important;
+  color:#171019 !important;
+  text-shadow:none !important;
+}
+
 </style>
 </head>
 <body>
@@ -159,6 +196,18 @@ function closeResult(){
   render();
 }function addEx(){let n=document.getElementById("newex").value.trim();if(!n)return;data.exercises.push({id:"e"+Date.now(),name:n,group:"Otros",icon:"🏋️"});save();adding=false;render()}function more(){document.body.insertAdjacentHTML("beforeend",`<div class="overlay" id="menu" onclick="this.remove()"><div class="more" onclick="event.stopPropagation()"><button onclick="go('calendar');document.getElementById('menu').remove()">📅 Calendario</button><button onclick="go('achievements');document.getElementById('menu').remove()">🏆 Logros</button><button onclick="go('exercises');document.getElementById('menu').remove()">🏋 Ejercicios</button><button onclick="this.closest('.overlay').remove()">✕ Cerrar</button></div></div>`)}
 render();
-setTimeout(()=>document.getElementById("splash")?.classList.add("hide"),2700);
-setTimeout(()=>document.getElementById("splash")?.remove(),3250);
+
+/* Splash: only once per day, for exactly 3 seconds. */
+(function(){
+  const key="gymsibs_splash_date";
+  const today=new Date().toISOString().slice(0,10);
+  const splash=document.getElementById("splash");
+  if(localStorage.getItem(key)===today){
+    splash?.remove();
+    return;
+  }
+  localStorage.setItem(key,today);
+  setTimeout(()=>splash?.classList.add("hide"),3000);
+  setTimeout(()=>splash?.remove(),3500);
+})();
 </script></body></html>
