@@ -186,4 +186,13 @@ sb.auth.getSession().then(x=>handleSession(x.data.session));sb.auth.onAuthStateC
 
 
 
-</script></body></html>
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+</script>
+
+</body></html>

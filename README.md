@@ -1,14 +1,20 @@
-# GYMSIBS V8
+# 💥 GYMSIBS V9 — PWA
 
-Versión conectada a Supabase.
+Versión instalable de GYMSIBS conectada a Supabase.
 
-- Inicio de sesión separado para Ara y Sergio.
-- Datos compartidos mediante Supabase.
-- Cada persona registra solo sus propios entrenamientos.
-- Duelo semanal lunes-domingo por mejor marca de cada ejercicio.
-- Pasos diarios y total semanal.
-- Progreso, logros, calendario, editar/borrar y añadir ejercicios.
-- Diseño comic/arcade responsive.
-- Un único index.html, listo para GitHub Pages.
+## Incluye
+- Instalación como app en Chrome/Edge y dispositivos compatibles.
+- Icono GYMSIBS y pantalla independiente.
+- Diseño GYMSIBS conservado.
+- Supabase/Auth y datos compartidos conservados.
+- Service Worker para cargar la interfaz desde caché si la conexión falla.
+- Los datos de Supabase NO se guardan en caché por seguridad y coherencia.
 
-La app usa la Publishable Key de Supabase en el navegador. No contiene la Secret Key/service_role.
+## Publicación
+Sube todos estos archivos a GitHub Pages:
+- `index.html`
+- `manifest.webmanifest`
+- `sw.js`
+- `icon-512.png`
+
+La instalación PWA requiere que GYMSIBS esté publicada por HTTPS (GitHub Pages sirve por HTTPS).
