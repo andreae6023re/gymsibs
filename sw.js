@@ -1,4 +1,4 @@
-const CACHE = "gymsibs-v9";
+const CACHE = "gymsibs-v10-1";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -27,7 +27,7 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const request = event.request;
 
-  // Keep Supabase/API requests online-first. Do not cache user data.
+  // Supabase/API requests remain online-only; user data is never cached.
   if (request.method !== "GET" || !request.url.startsWith(self.location.origin)) {
     return;
   }
@@ -37,6 +37,10 @@ self.addEventListener("fetch", event => {
       const copy = response.clone();
       caches.open(CACHE).then(cache => cache.put(request, copy));
       return response;
-    }).catch(() => caches.match(request).then(cached => cached || caches.match("./index.html")))
+    }).catch(() =>
+      caches.match(request).then(cached =>
+        cached || caches.match("./index.html")
+      )
+    )
   );
 });

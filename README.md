@@ -1,3 +1,3 @@
-# GYMSIBS V10
+# GYMSIBS V10.1
 
-Mejora visual del Duelo semanal sobre la V9 PWA. Mantiene Supabase, autenticación y el resto de funcionalidades.
+Corrección de arranque de V10 y actualización del Service Worker. Mantiene el duelo semanal y la conexión con Supabase.
