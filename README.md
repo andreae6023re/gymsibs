@@ -1,3 +1,3 @@
-# GYMSIBS V10.1
+# GYMSIBS V10.3 — REPARADA
 
-Corrección de arranque de V10 y actualización del Service Worker. Mantiene el duelo semanal y la conexión con Supabase.
+Base funcional V8 + endurecimiento del manejo de kilos/repeticiones. No modifica Supabase ni su esquema.
