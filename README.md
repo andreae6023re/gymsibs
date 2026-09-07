@@ -1,3 +1,3 @@
-# GYMSIBS V11 · DUELO SEMANAL
+# GYMSIBS V12 · HISTORIAL DE DUELOS
 
-Mejora visual del Duelo semanal. Base estable de V10.5.
+Basada en la V11 estable. Añade historial de semanas anteriores y victorias acumuladas sin cambiar el guardado de entrenamientos ni la base de datos.
