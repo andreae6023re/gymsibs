@@ -1,3 +1,3 @@
-# GYMSIBS V10.5 — REPARADA
+# GYMSIBS V11 · DUELO SEMANAL
 
-Comparativa basada en los UID reales de Ara y Sergio y en los pesos devueltos por Supabase.
+Mejora visual del Duelo semanal. Base estable de V10.5.
