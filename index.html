@@ -1,4 +1,4 @@
-<!-- GYMSIBS V13.1 · DUELO LUNES + NATACIÓN -->
+<!-- GYMSIBS V13.5 · DUELO REPARADO + NATACIÓN -->
 <!-- GYMSIBS V11 -->
 <!doctype html>
 <html lang="es">
@@ -319,6 +319,56 @@ function weeklyCompetition(range){
 }
 function formatValue(d){return d.type==='steps'?Number(d).toLocaleString('es-ES'):d.type==='swim'?Number(d).toLocaleString('es-ES')+' largos':gymsibsWeight(d)+' kg';}
 function weeklyScore(){const c=weeklyCompetition(weekRange());return {rows:c.rows,araWins:c.araWins,sergioWins:c.sergioWins,ties:c.ties};}
+function duel(){
+ const range=previousWeekRange(), c=weeklyCompetition(range), total=c.araWins+c.sergioWins;
+ const lead=c.araWins>c.sergioWins?'ARA':c.sergioWins>c.araWins?'SERGIO':'EMPATE';
+ const leadText=lead==='EMPATE'?'🤝 EMPATE · NADIE CEDE':'👑 '+lead+' GANA LA SEMANA';
+ const exerciseRows=c.rows.map(x=>{
+   const winner=x.ara>x.sergio?'ARA':x.sergio>x.ara?'SERGIO':'EMPATE';
+   return `<div class="duel-ex ${winner==='EMPATE'?'tie':''}">
+     <span class="weight ara">${x.ara?gymsibsWeight(x.ara)+' kg':'—'}</span>
+     <span class="exname">${esc(x.name)}</span>
+     <span class="weight sergio">${x.sergio?gymsibsWeight(x.sergio)+' kg':'—'}</span>
+     <span class="badge">${winner==='ARA'?'🏆 GANA ARA':winner==='SERGIO'?'🏆 GANA SERGIO':'🤝 EMPATE'}</span>
+   </div>`;
+ }).join('');
+ const maxSteps=Math.max(c.araSteps,c.sergioSteps,1);
+ const araPct=Math.round(c.araSteps/maxSteps*100), sergioPct=Math.round(c.sergioSteps/maxSteps*100);
+ const stepWinner=c.araSteps>c.sergioSteps?'🏆 ARA GANA LOS PASOS':c.sergioSteps>c.araSteps?'🏆 SERGIO GANA LOS PASOS':'🤝 EMPATE EN PASOS';
+ const maxSwim=Math.max(c.araSwim,c.sergioSwim,1);
+ const araSwimPct=Math.round(c.araSwim/maxSwim*100), sergioSwimPct=Math.round(c.sergioSwim/maxSwim*100);
+ const swimWinner=c.araSwim>c.sergioSwim?'🏆 ARA GANA NATACIÓN':c.sergioSwim>c.araSwim?'🏆 SERGIO GANA NATACIÓN':'🤝 EMPATE EN NATACIÓN';
+ return topHeader()+header('DUELO')+
+ `<div class="duel-v11">
+   <div class="duel-title">⚔️ ARENA GYMSIBS ⚔️</div>
+   <div class="duel-sub">SEMANA CERRADA · ${range.start} → ${range.end}</div>
+   <div class="versus">
+     <div class="fighter ara"><small>🩷 ARA</small><b>${c.araWins}</b><small>PUNTOS</small></div>
+     <div class="vs">VS</div>
+     <div class="fighter sergio"><small>💙 SERGIO</small><b>${c.sergioWins}</b><small>PUNTOS</small></div>
+   </div>
+   <div class="lead ${lead==='EMPATE'?'tie':''}">${leadText}</div>
+   <div class="record">${total} ${total===1?'PRUEBA DECIDIDA':'PRUEBAS DECIDIDAS'} · ${c.ties} EMPATE${c.ties===1?'':'S'}</div>
+ </div>
+ <div class="duel-v11-card">
+   <h3>🏋️ PESAS · MEJOR MARCA</h3>
+   <div class="week-label">Cuenta el mejor peso de cada persona entre lunes y domingo.</div>
+   ${exerciseRows||'<p class="note">No hubo marcas comparables en la semana cerrada.</p>'}
+ </div>
+ <div class="duel-v11-steps">
+   <h3>👟 BATALLA DE PASOS</h3>
+   <div class="step-duel-row"><span>🩷 ARA</span><div class="step-duel-track"><div class="step-duel-fill" style="width:${araPct}%"></div></div><b>${c.araSteps.toLocaleString('es-ES')}</b></div>
+   <div class="step-duel-row"><span>💙 SERGIO</span><div class="step-duel-track"><div class="step-duel-fill" style="width:${sergioPct}%"></div></div><b>${c.sergioSteps.toLocaleString('es-ES')}</b></div>
+   <div class="step-winner">${c.araSteps||c.sergioSteps?stepWinner:'Sin datos de pasos comparables'}</div>
+ </div>
+ <div class="duel-v11-steps">
+   <h3>🏊 BATALLA DE NATACIÓN</h3>
+   <div class="step-duel-row"><span>🩷 ARA</span><div class="step-duel-track"><div class="step-duel-fill" style="width:${araSwimPct}%"></div></div><b>${c.araSwim.toLocaleString('es-ES')}</b></div>
+   <div class="step-duel-row"><span>💙 SERGIO</span><div class="step-duel-track"><div class="step-duel-fill" style="width:${sergioSwimPct}%"></div></div><b>${c.sergioSwim.toLocaleString('es-ES')}</b></div>
+   <div class="step-winner">${c.araSwim||c.sergioSwim?swimWinner:'Sin datos de natación comparables'}</div>
+   <p class="note">Piscina de 25 m · ${distanceText(c.araSwim)} · ${distanceText(c.sergioSwim)}</p>
+ </div>${historicalDuels()}`;
+}
 function totals(){return {ara:0,sergio:0}}
 function stepTotals(){const r=weekRange(),out={ara:0,sergio:0},araId=data.profiles.find(p=>p.name==='Ara')?.id,sergioId=data.profiles.find(p=>p.name==='Sergio')?.id;data.steps.filter(x=>x.date>=r.start&&x.date<=r.end).forEach(x=>{if(x.user_id===araId)out.ara+=Number(x.steps)||0;if(x.user_id===sergioId)out.sergio+=Number(x.steps)||0});return out}
 function header(title,back=""){return `<div class="head"><button onclick="${back?`go('${back}')`:''}">${back?'←':''}</button><h1>${title}</h1><span>✦</span></div>`}
