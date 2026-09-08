@@ -1,3 +1,3 @@
-# GYMSIBS V12 · HISTORIAL DE DUELOS
+# GYMSIBS V13
 
-Basada en la V11 estable. Añade historial de semanas anteriores y victorias acumuladas sin cambiar el guardado de entrenamientos ni la base de datos.
+Comparativa cerrada los lunes con animación por prueba y ganador semanal. Añade natación por largos. Ejecuta SUPABASE_NATACION.sql en SQL Editor antes de usar Natación.
