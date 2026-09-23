@@ -1,9 +1,11 @@
-GYMSIBS V13.4
-- Duelo semanal los lunes con la semana anterior.
-- Registro de entrenamientos sin comparativa inmediata.
-- Natación: largos en piscina de 25 m, metros y km automáticos.
-- Natación visible en Home debajo de Pasos.
-- Edición y borrado de entrenamientos restaurados.
-- Menú Natación corregido.
-- Confirmación breve al guardar, sin popup de comparativa.
-- Service Worker actualizado.
+# GYMSIBS V13.7
+
+Cambios:
+- Editar nombre y tipo de ejercicios.
+- Tipos: Pierna, Pecho, Espalda, Hombros, Brazos, Core, Glúteos, Cardio y Otros.
+- Mi progreso aparece en el menú lateral.
+- Navegación atrás mediante historial para evitar salir de la app.
+- Mejoras de peso en barras con tramo de mejora y confeti.
+- Calendario navegable mes a mes.
+- Al pulsar un día se muestran ejercicios, pasos y natación del usuario actual.
+- Caché PWA V13.7.
