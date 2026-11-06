@@ -1,11 +1,13 @@
-# GYMSIBS V13.7
+GYMSIBS V14 · TERCER PERFIL + PILATES
+
+Incluye tres perfiles: Ara, Sergio y Andrea (andrea.cosascasa@gmail.com). La foto de Andrea está integrada dentro de index.html.
 
 Cambios:
-- Editar nombre y tipo de ejercicios.
-- Tipos: Pierna, Pecho, Espalda, Hombros, Brazos, Core, Glúteos, Cardio y Otros.
-- Mi progreso aparece en el menú lateral.
-- Navegación atrás mediante historial para evitar salir de la app.
-- Mejoras de peso en barras con tramo de mejora y confeti.
-- Calendario navegable mes a mes.
-- Al pulsar un día se muestran ejercicios, pasos y natación del usuario actual.
-- Caché PWA V13.7.
+- Inicio de sesión con tres perfiles.
+- Andrea se identifica mediante su registro en public.profiles.
+- Duelos semanales para tres participantes. Cada prueba compara a quienes tengan datos; el mejor resultado obtiene el punto.
+- Registro de clases de Pilates, historial, calendario y competición semanal.
+
+Antes de usar Pilates, ejecutar SUPABASE_PILATES.sql en Supabase → SQL Editor → New query → Run.
+
+Sube el contenido del ZIP a la raíz del repositorio GitHub, sustituyendo los archivos existentes.
