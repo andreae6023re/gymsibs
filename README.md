@@ -9,3 +9,10 @@
 
 ## Publicación
 Sube el contenido de este ZIP a la raíz del repositorio de GitHub y sustituye los archivos existentes. No hace falta ejecutar SQL nuevo.
+
+
+## V16 · Resumen diario de entrenamiento
+- Resumen por fecha con ejercicios, pasos, natación y Pilates.
+- Edición de peso, repeticiones y fecha de cada ejercicio.
+- Alta rápida de ejercicios en fechas anteriores.
+- Estado diferenciando entrenamiento registrado, descanso marcado y día sin registros.

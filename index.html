@@ -1,4 +1,4 @@
-<!-- GYMSIBS V13.6 · DUELO REPARADO + NATACIÓN -->
+<!-- GYMSIBS V16 · RESUMEN DIARIO + EDICIÓN DE REGISTROS -->
 <!-- GYMSIBS V11 -->
 <!doctype html>
 <html lang="es">
@@ -210,6 +210,11 @@ function gymsibsWeight(value){
 .player-score span,.player-score b{color:#171019!important;-webkit-text-stroke:.65px #171019;paint-order:stroke fill;text-shadow:0 0 .5px #171019}
 .steps-card .player-metrics b,.steps-card>small{ -webkit-text-stroke:1px #171019; paint-order:stroke fill; text-shadow:0 0 .8px #171019}
 .steps-card .player-metrics b{font-weight:1000}
+
+.day-summary-head{text-align:center;padding:4px 0 12px}.day-summary-head>small{font-weight:900;letter-spacing:1px;color:#666}.day-summary-head h2{margin:5px 0 9px;text-transform:capitalize}
+.day-status{display:inline-block;padding:6px 10px;border:2px solid var(--ink);font-size:10px;font-weight:1000;letter-spacing:.5px;background:#fff}.day-status.done{background:#c8f2cf}.day-status.rest{background:#dce8ff}.day-status.empty{background:#ffe4a8}
+.day-summary-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px}.day-summary-stats>div{background:#fff;border:2px solid var(--ink);padding:8px 3px;box-shadow:2px 2px #171019}.day-summary-stats b,.day-summary-stats small{display:block}.day-summary-stats b{font:25px Bangers}.day-summary-stats small{font-size:9px;font-weight:900}
+.day-workout-row{padding:9px 0;border-bottom:1px dashed #aaa}.day-workout-info{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px}.day-workout-info span{font-weight:900}.day-workout-actions{display:flex;gap:7px;margin-top:7px}.day-workout-actions button,.day-add{border:2px solid var(--ink);background:var(--y);padding:7px 10px;font-weight:1000;font-size:10px;box-shadow:2px 2px #171019}.day-workout-actions .delete-btn{background:#fff}.day-add{width:100%;margin-top:9px;font:17px Bangers;padding:9px;background:var(--p);color:#fff}.secondary-day-add{background:#fff;color:var(--ink)}.day-rest-actions{display:flex;justify-content:center;margin:12px 0}.day-rest-actions button{border:2px solid var(--ink);padding:9px;background:#dce8ff;font-weight:900}.day-hint{text-align:center;font-size:11px;font-weight:800;color:#555;line-height:1.4}
 </style>
 </head>
 <body data-gymsibs-version="15.0">
@@ -370,7 +375,48 @@ function historicalDuels(){
 function stepsScreen(){const me=currentUser.id,own=data.steps.filter(x=>x.user_id===me).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20),st=stepTotals(),date=stepsDateSelected||todayISO(),selected=data.steps.find(x=>x.user_id===me&&x.date===date);return topHeader()+header('PASOS','home')+`<div class="step-form"><label class="auth-field"><span>FECHA DEL REGISTRO</span><input id="stepDate" type="date" max="${todayISO()}" value="${date}" onchange="stepsDateSelected=this.value;const v=data.steps.find(x=>x.user_id===currentUser.id&&x.date===this.value);document.getElementById('stepsToday').value=Number(v?.steps)||0;document.querySelector('.step-date-label').textContent='PASOS DEL '+this.value"></label><label class="auth-field"><span class="step-date-label">PASOS DEL ${date}</span><input id="stepsToday" type="number" min="0" step="1" value="${Number(selected?.steps)||0}"></label><button onclick="saveSteps()">GUARDAR PASOS 👟</button></div><div class="card"><label>ESTA SEMANA</label>${gymsibsPlayers().map(p=>`<div class="week-total"><span class="who" style="color:${p.color}">${esc(p.name.toUpperCase())}</span><span class="num">${(st[p.key]||0).toLocaleString('es-ES')}</span></div>`).join('')}</div><div class="card"><label>MIS REGISTROS RECIENTES</label>${own.map(x=>`<div class="history-item"><div><span>${x.date}</span><b>${Number(x.steps).toLocaleString('es-ES')} pasos</b></div><div class="history-actions"><button class="delete-btn" onclick="deleteSteps('${x.id}')">🗑 BORRAR</button></div></div>`).join('')||'<p class="note">Todavía no has registrado pasos.</p>'}</div>`} function achievements(t){const my=data.records.filter(r=>r.user_id===currentUser.id),maxWeight=Math.max(0,...data.records.map(r=>gymsibsWeight(r.weight))),unique=new Set(my.map(r=>r.exercise_id)).size,w=weeklyScore();const items=[['💥','KACHOW!','Primer entrenamiento',my.length>=1],['⚡','MACHINE','5 registros',my.length>=5],['🔥','A POR EL SIGUIENTE','10 registros',my.length>=10],['🚀','MODO BESTIA','20 registros',my.length>=20],['💯','CENTURION','25 registros',my.length>=25],['🩷','NO HAY QUIEN LA PARE','Ara gana un ejercicio esta semana',(w.totals.ara?.wins||0)>=1],['💖','ARA-POCALYPSE','Ara gana 5 ejercicios semanales',(w.totals.ara?.wins||0)>=5],['👑','REINA DEL HIERRO','Ara gana 10 ejercicios semanales',(w.totals.ara?.wins||0)>=10],['💜','ANDREA POWER','Andrea gana un ejercicio esta semana',(w.totals.andrea?.wins||0)>=1],['💜','ANDREA SUPREMA','Andrea gana 5 ejercicios semanales',(w.totals.andrea?.wins||0)>=5],['🏆','REINA DEL DUELO','Andrea gana 10 ejercicios semanales',(w.totals.andrea?.wins||0)>=10],['🤝','COMEBACK KING','Primer empate semanal',w.ties>=1],['🎯','VERSÁTIL','Entrena 3 ejercicios distintos',unique>=3],['🧠','TODO CONTROLADO','Entrena 5 ejercicios distintos',unique>=5],['💪','50 CLUB','Alguien llega a 50 kg',maxWeight>=50],['🦾','100 CLUB','Alguien llega a 100 kg',maxWeight>=100],['☠️','MODO TITÁN','Alguien llega a 150 kg',maxWeight>=150],['📅','CONSTANCIA','Entrena en 3 días distintos',new Set(my.map(r=>r.date)).size>=3],['🌪️','SIN FRENOS','Entrena en 7 días distintos',new Set(my.map(r=>r.date)).size>=7],['🏋️','PRIMER RÉCORD','Supera 40 kg',maxWeight>=40]];return topHeader()+header('MIS LOGROS')+`<p class="note">Aquí se viene a entrenar... y a desbloquear cosas absurdamente satisfactorias 😎</p><div class="ach">${items.map(x=>`<div class="achievement ${x[3]?'on':''}"><div>${x[0]}</div><b>${x[1]}</b><small>${x[2]}</small>${x[3]?'<span>DESBLOQUEADO</span>':''}</div>`).join('')}</div>`}
 function calendar(){const year=calendarCursor.getFullYear(),month=calendarCursor.getMonth(),first=new Date(year,month,1),days=new Date(year,month+1,0).getDate(),offset=(first.getDay()+6)%7,names=['L','M','X','J','V','S','D'],me=currentUser.id;let cells=names.map(x=>`<b>${x}</b>`).join('');for(let i=0;i<offset;i++)cells+='<span></span>';for(let n=1;n<=days;n++){const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(n).padStart(2,'0')}`;const has=data.records.some(r=>r.user_id===me&&r.date===ds)||data.steps.some(r=>r.user_id===me&&r.date===ds)||data.swimming.some(r=>r.user_id===me&&r.date===ds)||data.pilates.some(r=>r.user_id===me&&r.date===ds);const today=ds===todayISO();cells+=`<span class="calendar-day ${has?'has-data trained':''} ${today?'today':''}" onclick="showCalendarDay('${ds}')">${n}</span>`}const title=calendarCursor.toLocaleDateString('es-ES',{month:'long',year:'numeric'}).toUpperCase();return topHeader()+header('CALENDARIO')+`<div class="calendar-nav"><button onclick="changeCalendarMonth(-1)">‹</button><h2 class="month">${title}</h2><button onclick="changeCalendarMonth(1)">›</button></div><div class="calendar">${cells}</div><p class="note">Pulsa cualquier día para ver tus ejercicios, pasos, natación y Pilates.</p>`}
 function changeCalendarMonth(delta){calendarCursor.setMonth(calendarCursor.getMonth()+delta);render()}
-function showCalendarDay(ds){const mine=data.records.filter(r=>r.user_id===currentUser.id&&r.date===ds).sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));const st=data.steps.find(x=>x.user_id===currentUser.id&&x.date===ds);const sw=data.swimming.find(x=>x.user_id===currentUser.id&&x.date===ds);const pl=data.pilates.find(x=>x.user_id===currentUser.id&&x.date===ds);const dateLabel=new Date(ds+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});const workouts=mine.map(r=>`<div class="day-item"><span>🏋️ ${esc(exerciseName(r.exercise_id))}</span><b>${gymsibsWeight(r.weight)} kg × ${gymsibsWeight(r.reps)}</b></div>`).join('')||'<p class="note">No hay ejercicios registrados.</p>';const steps=st?`<div class="day-item"><span>👟 Pasos</span><b>${Number(st.steps).toLocaleString('es-ES')}</b></div>`:'<p class="note">No hay pasos registrados.</p>';const swim=sw?`<div class="day-item"><span>🏊 Natación</span><b>${Number(sw.lengths).toLocaleString('es-ES')} largos · ${distanceText(sw.lengths)}</b></div>`:'<p class="note">No hay natación registrada.</p>';const pilates=pl?`<div class="day-item"><span>🧘 Pilates</span><b>${pl.classes} clases</b></div>`:'<p class="note">No hay Pilates registrado.</p>';document.body.insertAdjacentHTML('beforeend',`<div class="day-modal" id="dayModal" onclick="if(event.target===this)this.remove()"><div class="day-card"><h2>${dateLabel}</h2><div class="day-section"><h3>🏋️ EJERCICIOS</h3>${workouts}</div><div class="day-section"><h3>👟 PASOS</h3>${steps}</div><div class="day-section"><h3>🏊 NATACIÓN</h3>${swim}</div><div class="day-section"><h3>🧘 PILATES</h3>${pilates}</div><button class="day-close" onclick="document.getElementById('dayModal')?.remove()">CERRAR</button></div></div>`)}
+function showCalendarDay(ds){
+ const mine=data.records.filter(r=>r.user_id===currentUser.id&&r.date===ds).sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
+ const st=data.steps.find(x=>x.user_id===currentUser.id&&x.date===ds);
+ const sw=data.swimming.find(x=>x.user_id===currentUser.id&&x.date===ds);
+ const pl=data.pilates.find(x=>x.user_id===currentUser.id&&x.date===ds);
+ const restKey=`gymsibs_rest_${currentUser.id}_${ds}`,isRest=localStorage.getItem(restKey)==='1';
+ const dateLabel=new Date(ds+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ const totalReps=mine.reduce((n,r)=>n+gymsibsWeight(r.reps),0);
+ const status=mine.length?'ENTRENAMIENTO REGISTRADO':isRest?'DÍA DE DESCANSO':'SIN ENTRENAMIENTO REGISTRADO';
+ const workouts=mine.map(r=>`<div class="day-workout-row"><div class="day-workout-info"><b>🏋️ ${esc(exerciseName(r.exercise_id))}</b><span>${gymsibsWeight(r.weight)} kg · ${gymsibsWeight(r.reps)} repeticiones</span></div><div class="day-workout-actions"><button onclick="editRecord('${r.id}')">EDITAR</button><button class="delete-btn" onclick="deleteRecord('${r.id}')">BORRAR</button></div></div>`).join('')||'<p class="note">No hay ejercicios de fuerza registrados.</p>';
+ const steps=st?`<div class="day-item"><span>👟 Pasos</span><b>${Number(st.steps).toLocaleString('es-ES')}</b></div>`:'<p class="note">No hay pasos registrados.</p>';
+ const swim=sw?`<div class="day-item"><span>🏊 Natación</span><b>${Number(sw.lengths).toLocaleString('es-ES')} largos · ${distanceText(sw.lengths)}</b></div>`:'<p class="note">No hay natación registrada.</p>';
+ const pilates=pl?`<div class="day-item"><span>🧘 Pilates</span><b>${pl.classes} clases</b></div>`:'<p class="note">No hay Pilates registrado.</p>';
+ document.getElementById('dayModal')?.remove();
+ document.body.insertAdjacentHTML('beforeend',`<div class="day-modal" id="dayModal" onclick="if(event.target===this)this.remove()"><div class="day-card">
+ <div class="day-summary-head"><small>RESUMEN DEL DÍA</small><h2>${dateLabel}</h2><span class="day-status ${mine.length?'done':isRest?'rest':'empty'}">${status}</span><div class="day-summary-stats"><div><b>${mine.length}</b><small>ejercicios</small></div><div><b>${totalReps}</b><small>repeticiones</small></div><div><b>${st?Number(st.steps).toLocaleString('es-ES'):'—'}</b><small>pasos</small></div></div></div>
+ <div class="day-section"><h3>🏋️ ENTRENAMIENTO DE FUERZA</h3>${workouts}<button class="day-add" onclick="openAddDayWorkout('${ds}')">＋ AÑADIR EJERCICIO</button></div>
+ <div class="day-section"><h3>👟 PASOS</h3>${steps}<button class="day-add secondary-day-add" onclick="menuGo('steps')">VER / REGISTRAR PASOS</button></div>
+ <div class="day-section"><h3>🏊 NATACIÓN</h3>${swim}<button class="day-add secondary-day-add" onclick="menuGo('swimming')">VER / REGISTRAR NATACIÓN</button></div>
+ <div class="day-section"><h3>🧘 PILATES</h3>${pilates}<button class="day-add secondary-day-add" onclick="menuGo('pilates')">VER / REGISTRAR PILATES</button></div>
+ <div class="day-rest-actions">${isRest?`<button class="secondary" onclick="setDayRest('${ds}',false)">QUITAR DÍA DE DESCANSO</button>`:`<button class="secondary" onclick="setDayRest('${ds}',true)">MARCAR COMO DESCANSO</button>`}</div>
+ <p class="day-hint">${mine.length||st||sw||pl?'Revisa los registros por si falta alguna actividad.':'No hay actividad guardada. Si entrenaste, añádela; si descansaste, marca el día como descanso.'}</p>
+ <button class="day-close" onclick="document.getElementById('dayModal')?.remove()">CERRAR</button></div></div>`);
+}
+function setDayRest(ds,value){
+ const key=`gymsibs_rest_${currentUser.id}_${ds}`;
+ if(value)localStorage.setItem(key,'1');else localStorage.removeItem(key);
+ showCalendarDay(ds);
+}
+function openAddDayWorkout(ds){
+ const options=data.exercises.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+ document.getElementById('dayAddModal')?.remove();
+ document.body.insertAdjacentHTML('beforeend',`<div class="edit-modal" id="dayAddModal"><div class="edit-card"><h2>AÑADIR ENTRENAMIENTO</h2><p>Registra un ejercicio para el ${ds}</p><label>EJERCICIO<select id="day-add-exercise">${options}</select></label><div class="edit-grid"><label>PESO (KG)<input id="day-add-weight" type="number" min="0" step="0.5" value="20"></label><label>REPETICIONES<input id="day-add-reps" type="number" min="1" value="10"></label></div><label>FECHA<input id="day-add-date" type="date" value="${ds}" max="${todayISO()}"></label><div class="edit-actions"><button class="secondary" onclick="document.getElementById('dayAddModal')?.remove()">CANCELAR</button><button onclick="saveDayWorkout()">GUARDAR</button></div></div></div>`);
+}
+async function saveDayWorkout(){
+ const exercise_id=document.getElementById('day-add-exercise')?.value,date=document.getElementById('day-add-date')?.value;
+ const weight=gymsibsNumber(document.getElementById('day-add-weight')?.value),reps=gymsibsNumber(document.getElementById('day-add-reps')?.value);
+ if(!exercise_id||!date||date>todayISO()||weight<=0||reps<=0){alert('Comprueba el ejercicio, la fecha, el peso y las repeticiones.');return}
+ const {data:row,error}=await sb.from('workouts').insert({user_id:currentUser.id,exercise_id,date,weight,reps}).select('id,user_id,exercise_id,date,weight,reps,created_at').single();
+ if(error){alert('No se ha podido guardar el entrenamiento.');console.error(error);return}
+ data.records.unshift(row);document.getElementById('dayAddModal')?.remove();showCalendarDay(date);showToast('ENTRENAMIENTO AÑADIDO ✓');
+}
 function resultOverlay(){return ''; }
 function go(s){screen=s;result=null;navIndex++;history.pushState({gymsibs:true,screen,index:navIndex},'',location.href);render()}
 function goBack(fallback='home'){if(navIndex>0){history.back()}else{screen=fallback;render()}}
@@ -393,24 +439,25 @@ async function register(){
 }
 async function editRecord(id){
  const r=data.records.find(x=>x.id===id&&x.user_id===currentUser.id);if(!r)return;
+ document.getElementById('editModal')?.remove();
  const modal=document.createElement('div');modal.className='edit-modal';modal.id='editModal';
- modal.innerHTML=`<div class="edit-card"><h2>EDITAR ENTRENAMIENTO</h2><p style="font-weight:900;margin-top:0">${exerciseName(r.exercise_id)} · ${r.date}</p><div class="edit-grid"><label>PESO (KG)<input id="edit-w" type="number" step="0.5" min="0" value="${gymsibsWeight(r.weight)}"></label><label>REPETICIONES<input id="edit-r" type="number" min="0" value="${gymsibsWeight(r.reps)}"></label></div><div class="edit-actions"><button class="secondary" onclick="document.getElementById('editModal')?.remove()">CANCELAR</button><button onclick="saveEditedRecord('${id}')">GUARDAR CAMBIOS</button></div></div>`;
+ modal.innerHTML=`<div class="edit-card"><h2>EDITAR ENTRENAMIENTO</h2><p style="font-weight:900;margin-top:0">${esc(exerciseName(r.exercise_id))}</p><div class="edit-grid"><label>PESO (KG)<input id="edit-w" type="number" step="0.5" min="0" value="${gymsibsWeight(r.weight)}"></label><label>REPETICIONES<input id="edit-r" type="number" min="1" value="${gymsibsWeight(r.reps)}"></label></div><label>FECHA<input id="edit-date" type="date" max="${todayISO()}" value="${r.date}"></label><div class="edit-actions"><button class="secondary" onclick="document.getElementById('editModal')?.remove()">CANCELAR</button><button onclick="saveEditedRecord('${id}')">GUARDAR CAMBIOS</button></div></div>`;
  document.body.appendChild(modal);
 }
 async function saveEditedRecord(id){
- const weight=Number(document.getElementById('edit-w')?.value)||0,reps=Number(document.getElementById('edit-r')?.value)||0;
- if(weight<=0||reps<=0){alert('Introduce peso y repeticiones válidos.');return}
- const {data:row,error}=await sb.from('workouts').update({weight,reps}).eq('id',id).eq('user_id',currentUser.id).select('id,user_id,exercise_id,date,weight,reps,created_at').single();
+ const weight=gymsibsNumber(document.getElementById('edit-w')?.value),reps=gymsibsNumber(document.getElementById('edit-r')?.value),date=document.getElementById('edit-date')?.value;
+ if(weight<=0||reps<=0||!date||date>todayISO()){alert('Introduce valores y una fecha válidos.');return}
+ const {data:row,error}=await sb.from('workouts').update({weight,reps,date}).eq('id',id).eq('user_id',currentUser.id).select('id,user_id,exercise_id,date,weight,reps,created_at').single();
  if(error){alert('No se ha podido guardar.');console.error(error);return}
  const i=data.records.findIndex(x=>x.id===id);if(i>=0)data.records[i]=row;
- document.getElementById('editModal')?.remove();render();showToast('CAMBIOS GUARDADOS ✓');
+ document.getElementById('editModal')?.remove();document.getElementById('dayModal')?.remove();showCalendarDay(row.date);showToast('CAMBIOS GUARDADOS ✓');
 }
 async function deleteRecord(id){
  const r=data.records.find(x=>x.id===id&&x.user_id===currentUser.id);if(!r)return;
  if(!confirm(`¿Borrar el entrenamiento de ${exerciseName(r.exercise_id)} del ${r.date}?\n\nEsta acción no se puede deshacer.`))return;
  const {error}=await sb.from('workouts').delete().eq('id',id).eq('user_id',currentUser.id);
  if(error){alert('No se ha podido borrar.');console.error(error);return}
- data.records=data.records.filter(x=>x.id!==id);render();showToast('ENTRENAMIENTO BORRADO ✓');
+ data.records=data.records.filter(x=>x.id!==id);const refreshDay=document.getElementById('dayModal')?r.date:null;render();if(refreshDay)showCalendarDay(refreshDay);showToast('ENTRENAMIENTO BORRADO ✓');
 }
 async function saveSteps(){
  const steps=Math.max(0,Math.floor(Number(document.getElementById('stepsToday')?.value)||0)),date=document.getElementById('stepDate')?.value||todayISO();if(!date||date>todayISO()){alert('Selecciona una fecha válida, hoy o anterior.');return}stepsDateSelected=date;
