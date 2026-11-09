@@ -1,13 +1,11 @@
-GYMSIBS V14 · TERCER PERFIL + PILATES
+# GYMSIBS V15.0 · Ara y Andrea
 
-Incluye tres perfiles: Ara, Sergio y Andrea (andrea.cosascasa@gmail.com). La foto de Andrea está integrada dentro de index.html.
+- Solo Ara y Andrea aparecen como perfiles disponibles y participan en los duelos.
+- Se ha actualizado el icono de la app con la ilustración conjunta de Ara y Andrea.
+- La pantalla de carga usa la nueva ilustración de Neo-City.
+- El avatar de Andrea usa la nueva imagen individual.
+- Se mantienen los registros históricos de Sergio en Supabase, pero no se muestran ni cuentan en los duelos. Su cuenta no se elimina.
+- Se mantienen pasos con fechas anteriores, natación y Pilates (Pilates no puntúa en los duelos).
 
-Cambios:
-- Inicio de sesión con tres perfiles.
-- Andrea se identifica mediante su registro en public.profiles.
-- Duelos semanales para tres participantes. Cada prueba compara a quienes tengan datos; el mejor resultado obtiene el punto.
-- Registro de clases de Pilates, historial, calendario y competición semanal.
-
-Antes de usar Pilates, ejecutar SUPABASE_PILATES.sql en Supabase → SQL Editor → New query → Run.
-
-Sube el contenido del ZIP a la raíz del repositorio GitHub, sustituyendo los archivos existentes.
+## Publicación
+Sube el contenido de este ZIP a la raíz del repositorio de GitHub y sustituye los archivos existentes. No hace falta ejecutar SQL nuevo.
