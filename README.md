@@ -16,3 +16,15 @@ Sube el contenido de este ZIP a la raíz del repositorio de GitHub y sustituye l
 - Edición de peso, repeticiones y fecha de cada ejercicio.
 - Alta rápida de ejercicios en fechas anteriores.
 - Estado diferenciando entrenamiento registrado, descanso marcado y día sin registros.
+
+
+## V17 · Gestión de ejercicios y nueva portada
+- Se puede editar el nombre y el grupo de cada ejercicio.
+- Se puede eliminar un ejercicio del catálogo mediante archivado (active=false), sin borrar los entrenamientos históricos asociados.
+- Los ejercicios archivados dejan de aparecer al elegir un ejercicio para entrenar, pero sus nombres siguen disponibles en el historial.
+- Nueva ilustración de Ara y Andrea en la pantalla de carga, el logotipo interno y el icono de la app.
+- No requiere cambios en el esquema SQL; la tabla exercises debe permitir UPDATE del campo active.
+
+
+## V18
+- Añadida la categoría **Bíceps** al selector de grupo muscular al crear y editar ejercicios.
