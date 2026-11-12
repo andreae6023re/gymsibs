@@ -1,4 +1,4 @@
-# GYMSIBS V15.0 · Ara y Andrea
+# GYMSIBS V19.0 · Ara y Andrea
 
 - Solo Ara y Andrea aparecen como perfiles disponibles y participan en los duelos.
 - Se ha actualizado el icono de la app con la ilustración conjunta de Ara y Andrea.
@@ -28,3 +28,18 @@ Sube el contenido de este ZIP a la raíz del repositorio de GitHub y sustituye l
 
 ## V18
 - Añadida la categoría **Bíceps** al selector de grupo muscular al crear y editar ejercicios.
+
+
+## V19 · Nuevo icono de la aplicación
+- Sustituido el icono PWA, favicon y acceso directo de iOS por la nueva imagen proporcionada.
+- Actualizada la caché del service worker para forzar la descarga del nuevo icono.
+- No requiere cambios en Supabase ni ejecución de SQL.
+
+
+## V20 · Portada de carga y contraste
+- Sustituida la imagen de la pantalla de carga por la nueva ilustración de Ara y Andrea.
+- Conservado el icono de aplicación actualizado en V19.
+- Rediseñadas las tarjetas de puntuación del apartado Duelo con fondos claros, nombres y etiquetas legibles y puntuaciones de alto contraste.
+- Reforzado el contraste de los detalles de cada prueba y del historial de duelos.
+- Actualizada la caché del service worker a V20.
+- Sin cambios en el esquema de Supabase; no requiere ejecutar SQL.
