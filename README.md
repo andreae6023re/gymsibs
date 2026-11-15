@@ -43,3 +43,12 @@ Sube el contenido de este ZIP a la raíz del repositorio de GitHub y sustituye l
 - Reforzado el contraste de los detalles de cada prueba y del historial de duelos.
 - Actualizada la caché del service worker a V20.
 - Sin cambios en el esquema de Supabase; no requiere ejecutar SQL.
+
+
+## Actualización V21 — icono
+
+- Se ha sustituido `icon-512.png` por la nueva ilustración de Araceli y Andrea.
+- Se han actualizado el favicon y el icono de Apple/iOS incrustados en `index.html`.
+- Se ha actualizado la caché de la PWA a `gymsibs-v21.0` para forzar la renovación de recursos.
+
+**Importante:** esta entrega actualiza la identidad visual de la aplicación sobre la base V20. No incorpora todavía las pantallas ni la lógica de Rutinas, XP, logros, recompensas o Step Battle.
