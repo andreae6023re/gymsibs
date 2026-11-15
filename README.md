@@ -26,3 +26,8 @@ Incluye la base V20, icono actualizado de Ara y Andrea, y módulos nuevos conect
 - Al añadir un ejercicio a una rutina, primero se elige el grupo muscular (por ejemplo, Pierna, Hombro o Tríceps) y después aparece un desplegable con los ejercicios activos registrados en el catálogo compartido.
 - Se mantienen los campos de series, repeticiones, peso objetivo y descanso.
 - El ejercicio se guarda vinculado a su ID real del catálogo (`exercise_id`), no como texto libre.
+
+
+## V22.2 · Catálogo inicial de logros y recompensas
+- Se añade `SUPABASE_GYMSIBS_V22.2_CARGAR_LOGROS_PREMIOS.sql` para cargar 18 logros personales, competitivos y compartidos, y 8 recompensas canjeables.
+- El SQL es idempotente y no concede XP inicial ni marca logros como completados.
