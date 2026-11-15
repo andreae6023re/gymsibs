@@ -31,3 +31,10 @@ Incluye la base V20, icono actualizado de Ara y Andrea, y módulos nuevos conect
 ## V22.2 · Catálogo inicial de logros y recompensas
 - Se añade `SUPABASE_GYMSIBS_V22.2_CARGAR_LOGROS_PREMIOS.sql` para cargar 18 logros personales, competitivos y compartidos, y 8 recompensas canjeables.
 - El SQL es idempotente y no concede XP inicial ni marca logros como completados.
+
+
+## V22.3 · Colección de insignias
+- Se recuperan y mantienen los 20 logros originales con sus condiciones históricas.
+- Se muestran como medallas en una colección visual, con estado desbloqueado/bloqueado.
+- Se añaden las nuevas insignias del catálogo Supabase, separadas en personales, duelos, compartidas y personalizadas; muestran progreso y XP cuando está disponible.
+- No se elimina ni modifica ningún registro histórico de logros o entrenamientos.
