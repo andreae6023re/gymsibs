@@ -1,13 +1,10 @@
-# GYMSIBS V22.4 – UX Duelo y Rutinas
+# GYMSIBS V22.5 – Corrección de fechas del duelo semanal
 
 ## Cambios
-- El resumen del duelo semanal ahora tiene un botón X siempre visible.
-- Se puede cerrar el resumen pulsando fuera de la tarjeta.
-- La sesión de rutina usa un panel con scroll vertical independiente, también en móvil.
-- Los ejercicios se agrupan: cada ejercicio aparece una sola vez y sus series aparecen debajo.
-- Cada serie permite editar kilos, repeticiones y marcarla como completada.
-- Se pueden añadir series adicionales a un ejercicio durante la sesión; se guardan en `workout_session_sets`.
-- Se mantiene la estética arcade de GYMSIBS y se actualiza la caché PWA a V22.4.
+- Se corrige el cálculo de fechas de calendario para utilizar la fecha local y no UTC.
+- Evita que el lunes y el domingo se desplacen al día anterior en España.
+- El duelo semanal incluye correctamente los entrenamientos registrados durante todo el domingo.
+- Se actualiza la caché PWA a V22.5 para que los dispositivos descarguen la versión corregida.
 
 ## Actualización
-Sustituir los archivos del repositorio por los de este ZIP. No requiere ejecutar SQL nuevo.
+Sustituir los archivos del repositorio por los de este ZIP. No requiere ejecutar SQL nuevo ni modificar datos de Supabase.

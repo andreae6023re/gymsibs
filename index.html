@@ -439,7 +439,9 @@ async function loadData(){
 function exerciseName(id){return data.exercises.find(x=>x.id===id)?.name||id||'Ejercicio'}
 function currentName(){return (currentProfile?.name||selectedLogin||'').toLowerCase()}
 function mondayOf(date=new Date()){const d=new Date(date);d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d}
-function isoDate(d){return d.toISOString().slice(0,10)}
+// Formatea fechas de calendario en hora local. No usar toISOString(): convierte a UTC
+// y en España puede desplazar la medianoche al día anterior, excluyendo los domingos.
+function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function weekRange(){const start=mondayOf();const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)}}
 function weeklyWorkouts(){const r=weekRange();return data.records.filter(x=>x.date>=r.start&&x.date<=r.end)}
 function weekRangeFor(date){const start=mondayOf(date);const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)};}
