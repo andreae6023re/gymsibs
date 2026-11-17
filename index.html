@@ -388,11 +388,24 @@ async function loadData(){
 
   // Cargamos primero SOLO las cuatro tablas que ya existían y que hacen funcionar la app.
   // Natación es opcional: si esa tabla tiene cualquier problema, no debe bloquear GymSis.
+  const fetchAllRows=async(table,columns,orders=[])=>{
+    const pageSize=1000;let from=0,all=[];
+    while(true){
+      let q=sb.from(table).select(columns);
+      for(const [column,ascending] of orders)q=q.order(column,{ascending});
+      const {data:page,error}=await q.range(from,from+pageSize-1);
+      if(error)throw error;
+      all=all.concat(page||[]);
+      if(!page||page.length<pageSize)break;
+      from+=pageSize;
+    }
+    return {data:all,error:null};
+  };
   const [p,e,w,st]=await Promise.all([
-    sb.from('profiles').select('id,name,color').order('name'),
-    sb.from('exercises').select('id,name,group_name,icon,active').order('name'),
-    sb.from('workouts').select('id,user_id,exercise_id,date,weight,reps,created_at').order('date',{ascending:false}).order('created_at',{ascending:false}),
-    sb.from('steps').select('id,user_id,date,steps,created_at').order('date',{ascending:false})
+    fetchAllRows('profiles','id,name,color',[['name',true]]),
+    fetchAllRows('exercises','id,name,group_name,icon,active',[['name',true]]),
+    fetchAllRows('workouts','id,user_id,exercise_id,date,weight,reps,created_at',[['date',false],['created_at',false]]),
+    fetchAllRows('steps','id,user_id,date,steps,created_at',[['date',false]])
   ]);
 
   const coreErrors=[
@@ -420,7 +433,7 @@ async function loadData(){
 
   // Natación no puede impedir que la aplicación arranque.
   try{
-    const sw=await sb.from('swimming').select('id,user_id,date,lengths,created_at').order('date',{ascending:false});
+    const sw=await fetchAllRows('swimming','id,user_id,date,lengths,created_at',[['date',false]]);
     if(sw.error){
       console.warn('Natación no disponible todavía:',sw.error);
       data.swimming=[];
@@ -439,24 +452,47 @@ async function loadData(){
 function exerciseName(id){return data.exercises.find(x=>x.id===id)?.name||id||'Ejercicio'}
 function currentName(){return (currentProfile?.name||selectedLogin||'').toLowerCase()}
 function mondayOf(date=new Date()){const d=new Date(date);d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d}
-function isoDate(d){return d.toISOString().slice(0,10)}
+function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function weekRange(){const start=mondayOf();const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)}}
 function weeklyWorkouts(){const r=weekRange();return data.records.filter(x=>x.date>=r.start&&x.date<=r.end)}
 function weekRangeFor(date){const start=mondayOf(date);const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)};}
 function previousWeekRange(){const d=mondayOf();d.setDate(d.getDate()-7);return weekRangeFor(d);}
 function isMonday(){return new Date().getDay()===1;}
 function weeklyCompetition(range){
- const players=gymsibsPlayers();const totals=Object.fromEntries(players.map(p=>[p.key,{...p,wins:0,steps:0,swim:0}]));
- const rows={};data.exercises.filter(e=>e.active!==false).forEach(e=>rows[e.id]={name:e.name,icon:e.icon||'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))});
- data.records.filter(w=>w.date>=range.start&&w.date<=range.end).forEach(w=>{const key=gymsibsPlayer(w.user_id);if(key&&rows[w.exercise_id])rows[w.exercise_id].values[key]=Math.max(rows[w.exercise_id].values[key],gymsibsWeight(w.weight));});
- data.steps.filter(x=>x.date>=range.start&&x.date<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].steps+=Number(x.steps)||0;});
- data.swimming.filter(x=>x.date>=range.start&&x.date<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].swim+=Math.max(0,Math.floor(Number(x.lengths)||0));});
+ const players=gymsibsPlayers();
+ const totals=Object.fromEntries(players.map(p=>[p.key,{...p,wins:0,steps:0,swim:0}]));
+ const rows={};
+ // Se incluyen ejercicios activos y también los que tengan registros en la semana,
+ // aunque se hayan archivado después: el historial nunca debe desaparecer del duelo.
+ data.exercises.forEach(e=>rows[e.id]={name:e.name,icon:e.icon||'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))});
+ const weekRecords=data.records.filter(w=>String(w.date||'').slice(0,10)>=range.start&&String(w.date||'').slice(0,10)<=range.end);
+ weekRecords.forEach(w=>{
+   const key=gymsibsPlayer(w.user_id);
+   if(!key||!totals[key])return;
+   if(!rows[w.exercise_id])rows[w.exercise_id]={name:exerciseName(w.exercise_id),icon:'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))};
+   rows[w.exercise_id].values[key]=Math.max(rows[w.exercise_id].values[key],gymsibsWeight(w.weight));
+ });
+ data.steps.filter(x=>String(x.date||'').slice(0,10)>=range.start&&String(x.date||'').slice(0,10)<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].steps+=Number(x.steps)||0;});
+ data.swimming.filter(x=>String(x.date||'').slice(0,10)>=range.start&&String(x.date||'').slice(0,10)<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].swim+=Math.max(0,Math.floor(Number(x.lengths)||0));});
  const details=[];let ties=0;
- const addResult=(name,icon,type,values,exerciseId=null)=>{const active=players.filter(p=>(Number(values[p.key])||0)>0);if(active.length<2)return;const max=Math.max(...active.map(p=>Number(values[p.key])||0));const winners=active.filter(p=>(Number(values[p.key])||0)===max);if(winners.length===1){totals[winners[0].key].wins++;}else ties++;details.push({name,icon,type,values,winners:winners.map(p=>p.key),active:active.map(p=>p.key),exerciseId});};
+ const addResult=(name,icon,type,values,exerciseId=null)=>{
+   const active=players.filter(p=>(Number(values[p.key])||0)>0);
+   if(!active.length)return;
+   const bothPresent=players.length<2||active.length===players.length;
+   let winners=[];
+   if(bothPresent){
+     const max=Math.max(...active.map(p=>Number(values[p.key])||0));
+     winners=active.filter(p=>(Number(values[p.key])||0)===max).map(p=>p.key);
+     if(winners.length===1)totals[winners[0]].wins++;else ties++;
+   }
+   details.push({name,icon,type,values,winners,active:active.map(p=>p.key),exerciseId,pending:!bothPresent});
+ };
  Object.entries(rows).forEach(([id,x])=>addResult(x.name,x.icon,'exercise',x.values,id));
  addResult('Pasos','👟','steps',Object.fromEntries(players.map(p=>[p.key,totals[p.key].steps])));
  addResult('Natación','🏊','swim',Object.fromEntries(players.map(p=>[p.key,totals[p.key].swim])));
- const ranking=[...players].sort((a,b)=>totals[b.key].wins-totals[a.key].wins);const top=ranking[0];const overall=ranking.length>1&&totals[top.key].wins===totals[ranking[1].key].wins?'tie':top?.key||'tie';
+ const ranking=[...players].sort((a,b)=>totals[b.key].wins-totals[a.key].wins);
+ const top=ranking[0];
+ const overall=ranking.length>1&&totals[top.key].wins===totals[ranking[1].key].wins?'tie':top?.key||'tie';
  return {range,players,totals,rows,details,ties,overall};
 }
 function formatValue(d){return d.type==='steps'?Number(d).toLocaleString('es-ES'):d.type==='swim'?Number(d).toLocaleString('es-ES')+' largos':gymsibsWeight(d)+' kg';}
@@ -465,7 +501,7 @@ function duel(){
  const range=previousWeekRange(),c=weeklyCompetition(range),players=c.players;
  const ranking=[...players].sort((a,b)=>c.totals[b.key].wins-c.totals[a.key].wins);
  const scoreCards=players.map(p=>`<div class="fighter" style="background:${p.color}22;border-color:${p.color}"><small>${esc(p.name.toUpperCase())}</small><b>${c.totals[p.key].wins}</b><small>PUNTOS</small></div>`).join('');
- const rows=c.details.map(d=>{const values=d.active.map(k=>({k,v:d.values[k],p:players.find(p=>p.key===k)}));const max=Math.max(...values.map(x=>Number(x.v)||0));const winners=values.filter(x=>Number(x.v)===max).map(x=>x.p.name);return `<div class="duel-v11-card"><h3>${d.icon} ${esc(d.name.toUpperCase())}</h3>${values.map(x=>`<div class="day-item"><span style="color:${x.p.color};font-weight:1000">${esc(x.p.name)}</span><b>${d.type==='exercise'?gymsibsWeight(x.v)+' kg':d.type==='swim'?x.v+' largos':Number(x.v).toLocaleString('es-ES')}</b></div>`).join('')}<div class="step-winner">${winners.length===1?'🏆 GANA '+esc(winners[0].toUpperCase()):'🤝 EMPATE'}</div></div>`}).join('');
+ const rows=c.details.map(d=>{const values=players.map(p=>({k:p.key,v:Number(d.values[p.key])||0,p}));const max=Math.max(...values.map(x=>x.v));const winners=values.filter(x=>x.v===max&&x.v>0).map(x=>x.p.name);const result=d.pending?'FALTA UN REGISTRO':winners.length===1?'🏆 GANA '+esc(winners[0].toUpperCase()):'🤝 EMPATE';return `<div class="duel-v11-card"><h3>${d.icon} ${esc(d.name.toUpperCase())}</h3>${values.map(x=>`<div class="day-item"><span style="color:${x.p.color};font-weight:1000">${esc(x.p.name)}</span><b>${x.v>0?(d.type==='exercise'?gymsibsWeight(x.v)+' kg':d.type==='swim'?x.v+' largos':Number(x.v).toLocaleString('es-ES')):'Sin registro'}</b></div>`).join('')}<div class="step-winner">${result}</div></div>`}).join('');
  const winner=ranking.length&&c.overall!=='tie'?`👑 ${ranking[0].name.toUpperCase()} GANA LA SEMANA`:'🤝 EMPATE EN CABEZA';
  return topHeader()+header('DUELO')+`<div class="duel-v11"><div class="duel-title">⚔️ ARENA GYMSIS ⚔️</div><div class="duel-sub">SEMANA CERRADA · ${range.start} → ${range.end}</div><div class="versus two-player">${scoreCards}</div><div class="lead ${c.overall==='tie'?'tie':''}">${winner}</div><div class="record">${c.details.length} PRUEBAS COMPARADAS · ${c.ties} EMPATES</div></div>${rows||'<p class="note">Todavía no hay datos comparables en la semana cerrada.</p>'}${historicalDuels()}`;
 }
@@ -538,7 +574,7 @@ async function saveDayWorkout(){
  data.records.unshift(row);document.getElementById('dayAddModal')?.remove();showCalendarDay(date);showToast('ENTRENAMIENTO AÑADIDO ✓');
 }
 function resultOverlay(){return ''; }
-function go(s){screen=s;result=null;navIndex++;history.pushState({gymsibs:true,screen,index:navIndex},'',location.href);render()}
+async function go(s){screen=s;result=null;navIndex++;history.pushState({gymsibs:true,screen,index:navIndex},'',location.href);render();if(s==='duel'){try{await loadData();render();}catch(err){console.error('No se pudo actualizar el duelo:',err);showToast('No se han podido actualizar los datos del duelo');}}}
 function goBack(fallback='home'){if(navIndex>0){history.back()}else{screen=fallback;render()}}
 window.addEventListener('popstate',e=>{if(e.state?.gymsibs){navIndex=Math.max(0,Number(e.state.index)||0);screen=e.state.screen||'home';result=null;render()}else if(currentUser){navIndex=0;screen='home';result=null;render()}});
 function openEx(id){exid=id;screen='workout';navIndex++;history.pushState({gymsibs:true,screen:'workout',index:navIndex},'',location.href);render()}function step(id,n){let x=document.getElementById(id);x.value=Math.max(0,(Number(x.value)||0)+n)}
