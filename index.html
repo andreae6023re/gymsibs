@@ -1,4 +1,4 @@
-<!-- GYMSIBS V20 · PORTADA DE CARGA + CONTRASTE EN DUELO -->
+<!-- GYMSIBS V22.6 · XP, LOGROS Y PASOS -->
 <!-- GYMSIBS V11 -->
 <!doctype html>
 <html lang="es">
@@ -439,9 +439,7 @@ async function loadData(){
 function exerciseName(id){return data.exercises.find(x=>x.id===id)?.name||id||'Ejercicio'}
 function currentName(){return (currentProfile?.name||selectedLogin||'').toLowerCase()}
 function mondayOf(date=new Date()){const d=new Date(date);d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d}
-// Formatea fechas de calendario en hora local. No usar toISOString(): convierte a UTC
-// y en España puede desplazar la medianoche al día anterior, excluyendo los domingos.
-function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function isoDate(d){return d.toISOString().slice(0,10)}
 function weekRange(){const start=mondayOf();const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)}}
 function weeklyWorkouts(){const r=weekRange();return data.records.filter(x=>x.date>=r.start&&x.date<=r.end)}
 function weekRangeFor(date){const start=mondayOf(date);const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)};}
@@ -449,13 +447,13 @@ function previousWeekRange(){const d=mondayOf();d.setDate(d.getDate()-7);return 
 function isMonday(){return new Date().getDay()===1;}
 function weeklyCompetition(range){
  const players=gymsibsPlayers();const totals=Object.fromEntries(players.map(p=>[p.key,{...p,wins:0,steps:0,swim:0}]));
- const rows={};data.exercises.filter(e=>e.active!==false).forEach(e=>rows[e.id]={name:e.name,icon:e.icon||'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))});
+ const rows={};data.exercises.filter(e=>e.active!==false).forEach(e=>rows[e.id]={id:e.id,name:e.name,icon:e.icon||'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))});
  data.records.filter(w=>w.date>=range.start&&w.date<=range.end).forEach(w=>{const key=gymsibsPlayer(w.user_id);if(key&&rows[w.exercise_id])rows[w.exercise_id].values[key]=Math.max(rows[w.exercise_id].values[key],gymsibsWeight(w.weight));});
  data.steps.filter(x=>x.date>=range.start&&x.date<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].steps+=Number(x.steps)||0;});
  data.swimming.filter(x=>x.date>=range.start&&x.date<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].swim+=Math.max(0,Math.floor(Number(x.lengths)||0));});
  const details=[];let ties=0;
- const addResult=(name,icon,type,values)=>{const active=players.filter(p=>(Number(values[p.key])||0)>0);if(active.length<2)return;const max=Math.max(...active.map(p=>Number(values[p.key])||0));const winners=active.filter(p=>(Number(values[p.key])||0)===max);if(winners.length===1){totals[winners[0].key].wins++;}else ties++;details.push({name,icon,type,values,winners:winners.map(p=>p.key),active:active.map(p=>p.key)});};
- Object.values(rows).forEach(x=>addResult(x.name,x.icon,'exercise',x.values));
+ const addResult=(name,icon,type,values,id=null)=>{const active=players.filter(p=>(Number(values[p.key])||0)>0);if(active.length<2)return;const max=Math.max(...active.map(p=>Number(values[p.key])||0));const winners=active.filter(p=>(Number(values[p.key])||0)===max);if(winners.length===1){totals[winners[0].key].wins++;}else ties++;details.push({id,name,icon,type,values,winners:winners.map(p=>p.key),active:active.map(p=>p.key)});};
+ Object.values(rows).forEach(x=>addResult(x.name,x.icon,'exercise',x.values,x.id));
  addResult('Pasos','👟','steps',Object.fromEntries(players.map(p=>[p.key,totals[p.key].steps])));
  addResult('Natación','🏊','swim',Object.fromEntries(players.map(p=>[p.key,totals[p.key].swim])));
  const ranking=[...players].sort((a,b)=>totals[b.key].wins-totals[a.key].wins);const top=ranking[0];const overall=ranking.length>1&&totals[top.key].wins===totals[ranking[1].key].wins?'tie':top?.key||'tie';
@@ -553,6 +551,7 @@ async function register(){
  const {data:row,error}=await sb.from('workouts').insert({user_id:currentUser.id,exercise_id:exid,date:todayISO(),weight,reps}).select('id,user_id,exercise_id,date,weight,reps,created_at').single();
  if(error){if(btn){btn.disabled=false;btn.textContent='¡REGISTRAR! ⚡'}alert('No se ha podido guardar el entrenamiento.');console.error(error);return}
  data.records.unshift(row);
+ if(typeof v22SyncAchievements==='function'){await v21Load();await v22SyncAchievements();await v21Load()}
  result=null;
  document.getElementById('result')?.remove();
  screen='exercises';
@@ -585,7 +584,15 @@ async function saveSteps(){
  const steps=Math.max(0,Math.floor(Number(document.getElementById('stepsToday')?.value)||0)),date=document.getElementById('stepDate')?.value||todayISO();if(!date||date>todayISO()){alert('Selecciona una fecha válida, hoy o anterior.');return}stepsDateSelected=date;
  const {data:row,error}=await sb.from('steps').upsert({user_id:currentUser.id,date,steps},{onConflict:'user_id,date'}).select('id,user_id,date,steps,created_at').single();
  if(error){alert('No se han podido guardar los pasos.');console.error(error);return}
- data.steps=data.steps.filter(x=>!(x.user_id===currentUser.id&&x.date===date));data.steps.unshift(row);render();showToast('PASOS GUARDADOS ✓');
+ data.steps=data.steps.filter(x=>!(x.user_id===currentUser.id&&x.date===date));data.steps.unshift(row);
+ let stepXpAwarded=false;
+ if(steps>8000){
+  const awardKey=`daily-steps:${currentUser.id}:${date}`;
+  const {error:xpError}=await sb.from('xp_transactions').insert({user_id:currentUser.id,amount:5,transaction_type:'daily_steps_goal',description:`Objetivo diario superado: ${steps.toLocaleString('es-ES')} pasos (${date})`,reference_id:row.id,award_key:awardKey});
+  if(!xpError)stepXpAwarded=true;else if(xpError.code!=='23505')console.warn('No se pudo conceder XP por pasos:',xpError.message);
+  if(typeof v21Load==='function')await v21Load();
+ }
+ render();showToast(steps>8000?(stepXpAwarded?'¡OBJETIVO DE PASOS! +5 XP':'PASOS GUARDADOS ✓'):'PASOS GUARDADOS ✓');
 }
 async function deleteSteps(id){
  if(!confirm('¿Borrar este registro de pasos?'))return;
@@ -688,21 +695,43 @@ function v21ActiveSession(id){
 function v21SessionSetRow(x){return `<div class="v21-series-row" data-set-id="${x.id}"><span class="v21-series-number">${x.set_number}</span><input aria-label="Kilos serie ${x.set_number}" type="number" min="0" step="0.5" id="v21w-${x.id}" value="${Number(x.weight)||0}" placeholder="kg"><input aria-label="Repeticiones serie ${x.set_number}" type="number" min="0" step="1" id="v21r-${x.id}" value="${Number(x.reps)||0}" placeholder="reps"><input aria-label="Serie completada" type="checkbox" id="v21c-${x.id}" ${x.completed?'checked':''}></div>`}
 async function v21AddSessionSet(sessionId,exerciseId,exerciseName,position,groupIndex){const current=gymsibsV21.sessionSets.filter(x=>x.session_id===sessionId&&x.position===position),next=Math.max(0,...current.map(x=>Number(x.set_number)||0))+1;const {data:z,error}=await sb.from('workout_session_sets').insert({session_id:sessionId,exercise_id:exerciseId||null,exercise_name:exerciseName,position,set_number:next,reps:0,weight:0,completed:false}).select().single();if(error)return alert('No se pudo añadir la serie: '+error.message);gymsibsV21.sessionSets.push(z);const target=document.getElementById('v21-series-'+groupIndex);target?.insertAdjacentHTML('beforeend',v21SessionSetRow(z));const card=document.querySelector('#v21Session .v21-session-scroll');if(card)card.scrollTop=card.scrollHeight;}
 
-async function v21SaveSession(id,status){for(const x of gymsibsV21.sessionSets.filter(x=>x.session_id===id)){const weight=Number(document.getElementById('v21w-'+x.id)?.value)||0,reps=Number(document.getElementById('v21r-'+x.id)?.value)||0,completed=!!document.getElementById('v21c-'+x.id)?.checked;await sb.from('workout_session_sets').update({weight,reps,completed}).eq('id',x.id);Object.assign(x,{weight,reps,completed})}const {error}=await sb.from('workout_sessions').update({status,finished_at:new Date().toISOString()}).eq('id',id).eq('user_id',currentUser.id);if(error)return alert(error.message);document.getElementById('v21Session')?.remove();showToast(status==='completed'?'SESIÓN FINALIZADA':'SESIÓN GUARDADA');}
+async function v21SaveSession(id,status){
+ for(const x of gymsibsV21.sessionSets.filter(x=>x.session_id===id)){
+  const weight=Number(document.getElementById('v21w-'+x.id)?.value)||0,reps=Number(document.getElementById('v21r-'+x.id)?.value)||0,completed=!!document.getElementById('v21c-'+x.id)?.checked;
+  const {error:setError}=await sb.from('workout_session_sets').update({weight,reps,completed}).eq('id',x.id);
+  if(setError)return alert('No se pudo guardar una serie: '+setError.message);
+  Object.assign(x,{weight,reps,completed});
+ }
+ const {error}=await sb.from('workout_sessions').update({status,finished_at:new Date().toISOString()}).eq('id',id).eq('user_id',currentUser.id);
+ if(error)return alert(error.message);
+ let earned=false;
+ if(status==='completed'){
+  const session=gymsibsV21.sessions.find(x=>x.id===id);
+  const {error:xpError}=await sb.from('xp_transactions').insert({user_id:currentUser.id,amount:10,transaction_type:'routine_complete',description:'Rutina completada: '+(session?.routine_name||'Entrenamiento'),reference_id:id,award_key:'routine:'+id});
+  if(!xpError)earned=true; else if(xpError.code!=='23505')console.warn('No se pudo conceder XP de rutina:',xpError.message);
+ }
+ document.getElementById('v21Session')?.remove();
+ await v21Load();
+ if(status==='completed'&&typeof v22SyncAchievements==='function'){await v22SyncAchievements();await v21Load()}
+ showToast(status==='completed'?(earned?'RUTINA FINALIZADA · +10 XP':'RUTINA FINALIZADA'):'SESIÓN GUARDADA');
+ if(screen==='v21achievements'||screen==='rewards')render();
+}
 function v21Achievements(){
- const mine=gymsibsV21.userAchievements.filter(x=>x.user_id===currentUser.id),xp=gymsibsV21.xp.filter(x=>x.user_id===currentUser.id).reduce((a,x)=>a+Number(x.amount),0);
- const my=data.records.filter(r=>r.user_id===currentUser.id),all=data.records,maxWeight=Math.max(0,...all.map(r=>gymsibsWeight(r.weight))),unique=new Set(my.map(r=>r.exercise_id)).size,w=weeklyScore();
- const legacy=[
- ['💥','KACHOW!','Primer entrenamiento',my.length>=1,'PERSONAL'],['⚡','MACHINE','5 registros',my.length>=5,'PERSONAL'],['🔥','A POR EL SIGUIENTE','10 registros',my.length>=10,'PERSONAL'],['🚀','MODO BESTIA','20 registros',my.length>=20,'PERSONAL'],['💯','CENTURION','25 registros',my.length>=25,'PERSONAL'],
- ['🩷','NO HAY QUIEN LA PARE','Ara gana un ejercicio esta semana',(w.totals.ara?.wins||0)>=1,'DUELOS'],['💖','ARA-POCALYPSE','Ara gana 5 ejercicios semanales',(w.totals.ara?.wins||0)>=5,'DUELOS'],['👑','REINA DEL HIERRO','Ara gana 10 ejercicios semanales',(w.totals.ara?.wins||0)>=10,'DUELOS'],['💜','ANDREA POWER','Andrea gana un ejercicio esta semana',(w.totals.andrea?.wins||0)>=1,'DUELOS'],['💜','ANDREA SUPREMA','Andrea gana 5 ejercicios semanales',(w.totals.andrea?.wins||0)>=5,'DUELOS'],['🏆','REINA DEL DUELO','Andrea gana 10 ejercicios semanales',(w.totals.andrea?.wins||0)>=10,'DUELOS'],['🤝','COMEBACK KING','Primer empate semanal',w.ties>=1,'DUELOS'],
- ['🎯','VERSÁTIL','Entrena 3 ejercicios distintos',unique>=3,'PERSONAL'],['🧠','TODO CONTROLADO','Entrena 5 ejercicios distintos',unique>=5,'PERSONAL'],['💪','50 CLUB','Alguien llega a 50 kg',maxWeight>=50,'MARCAS'],['🦾','100 CLUB','Alguien llega a 100 kg',maxWeight>=100,'MARCAS'],['☠️','MODO TITÁN','Alguien llega a 150 kg',maxWeight>=150,'MARCAS'],['📅','CONSTANCIA','Entrena en 3 días distintos',new Set(my.map(r=>r.date)).size>=3,'PERSONAL'],['🌪️','SIN FRENOS','Entrena en 7 días distintos',new Set(my.map(r=>r.date)).size>=7,'PERSONAL'],['🏋️','PRIMER RÉCORD','Supera 40 kg',maxWeight>=40,'MARCAS']
- ];
- const legacyUnlocked=legacy.filter(x=>x[3]).length;
- const iconFor=a=>({ 'Primera sesión':'🏁','Constancia inicial':'📅','Rutina establecida':'🧱','Imparable':'🚀','Mes en movimiento':'🗓️','Exploradora':'🧭','Progreso real':'📈','Primer récord':'🏆','Versátil':'🎯','Equilibrio':'⚖️','Primera victoria':'🥇','Racha ganadora':'🔥','Reina del duelo':'👑','Comeback':'🔄','Equipo en marcha':'🤝','A por todas':'💥','Step Team':'👟','Reto compartido':'🫶'}[a.title]||'⭐');
- const dbBadges=gymsibsV21.achievements.filter(a=>a.is_active).map(a=>{const u=mine.find(x=>x.achievement_id===a.id),done=!!u?.completed_at;return {icon:iconFor(a),title:a.title,desc:a.description||'Logro de GYMSIBS',done,category:a.category==='competitive'?'DUELOS':a.category==='shared'?'EN EQUIPO':'PERSONAL',xp:Number(a.xp_reward)||0,progress:u?.progress??0,goal:a.goal_value??1,custom:a.category==='custom'};});
- const badgeCard=(b)=>`<article class="badge-medal ${b.done?'earned':''}"><div class="badge-medal-icon">${b.icon}</div><div class="badge-medal-name">${v21Esc(b.title)}</div><div class="badge-medal-desc">${v21Esc(b.desc)}</div><div class="badge-medal-foot">${b.done?'<b>DESBLOQUEADA</b>':`<span>${b.progress??0} / ${b.goal??'—'}</span>`}${b.xp?`<em>+${b.xp} XP</em>`:''}</div></article>`;
- const sections=[['TUS LOGROS ORIGINALES',legacy.map(x=>badgeCard({icon:x[0],title:x[1],desc:x[2],done:x[3],category:x[4],xp:0}))],['NUEVAS INSIGNIAS',dbBadges.filter(x=>!x.custom).map(badgeCard)],['LOGROS PERSONALIZADOS',dbBadges.filter(x=>x.custom).map(badgeCard)]];
- return topHeader()+header('INSIGNIAS Y XP','home')+`<section class="badge-xp-hero"><div><small>EXPERIENCIA ACUMULADA</small><strong>${xp} XP</strong><span>${legacyUnlocked+dbBadges.filter(x=>x.done).length} insignias desbloqueadas</span></div><button onclick="v21CreateAchievement()">+ CREAR INSIGNIA</button></section>${sections.map(([title,cards])=>cards.length?`<section class="badge-section"><div class="badge-section-title">${title}<span>${cards.length}</span></div><div class="badge-grid">${cards.join('')}</div></section>`:'').join('')}`;
+ const mine=gymsibsV21.userAchievements.filter(x=>x.user_id===currentUser.id);
+ const xp=gymsibsV21.xp.filter(x=>x.user_id===currentUser.id).reduce((a,x)=>a+Number(x.amount),0);
+ const iconFor=a=>({
+  'Primera sesión':'🏁','Constancia inicial':'📅','Rutina establecida':'🧱','Imparable':'🚀','Mes en movimiento':'🗓️','Exploradora':'🧭','Progreso real':'📈','Primer récord':'🏆','Versátil':'🎯','Equilibrio':'⚖️','Primera victoria':'🥇','Racha ganadora':'🔥','Reina del duelo':'👑','Comeback':'🔄','Equipo en marcha':'🤝','A por todas':'💥','Step Team':'👟','Reto compartido':'🫶',
+  'KACHOW!':'💥','MACHINE':'⚡','A POR EL SIGUIENTE':'🔥','MODO BESTIA':'🚀','CENTURION':'💯','NO HAY QUIEN LA PARE':'🌟','ARA-POCALYPSE':'💖','REINA DEL HIERRO':'👑','ANDREA POWER':'💜','ANDREA SUPREMA':'⚡','REINA DEL DUELO':'🏆','COMEBACK KING':'🤝','TODO CONTROLADO':'🧠','50 CLUB':'💪','100 CLUB':'🦾','MODO TITÁN':'☠️','CONSTANCIA':'📅','SIN FRENOS':'🌪️','PRIMER RÉCORD':'🏋️',
+  'Primera rutina':'🏋️','Cinco rutinas':'✋','Diez rutinas':'🔟','Veinticinco rutinas':'🏅','Semana de tres rutinas':'📆','Catálogo explorado':'🧭','Constancia de cuatro semanas':'🗓️','Mes constante':'📅','Fuerza 75':'💪','Fuerza 125':'🦾','Fuerza 200':'🏋️','Movilidad consciente':'🧘','Primera brazada':'🏊','Dúo imparable':'🤜🤛','Semana dominante':'⚔️','Empate técnico':'🤝'
+ }[a.title]||'⭐');
+ const dbBadges=gymsibsV21.achievements.filter(a=>a.is_active).map(a=>{
+  const u=mine.find(x=>x.achievement_id===a.id),done=!!u?.completed_at;
+  return {icon:iconFor(a),title:a.title,desc:a.description||'Logro de GYMSIBS',done,category:a.category==='competitive'?'DUELOS':a.category==='shared'?'EN EQUIPO':'PERSONAL',xp:5,progress:u?.progress??0,goal:a.goal_value??1,custom:a.category==='custom'};
+ });
+ const badgeCard=b=>`<article class="badge-medal ${b.done?'earned':''}"><div class="badge-medal-icon">${b.icon}</div><div class="badge-medal-name">${v21Esc(b.title)}</div><div class="badge-medal-desc">${v21Esc(b.desc)}</div><div class="badge-medal-foot">${b.done?'<b>DESBLOQUEADA</b>':`<span>${b.progress??0} / ${b.goal??'—'}</span>`}<em>+5 XP</em></div></article>`;
+ const sections=[['PERSONALES',dbBadges.filter(x=>!x.custom&&x.category==='PERSONAL').map(badgeCard)],['DUELOS',dbBadges.filter(x=>!x.custom&&x.category==='DUELOS').map(badgeCard)],['EN EQUIPO',dbBadges.filter(x=>!x.custom&&x.category==='EN EQUIPO').map(badgeCard)],['PERSONALIZADOS',dbBadges.filter(x=>x.custom).map(badgeCard)]];
+ const unlocked=dbBadges.filter(x=>x.done).length;
+ return topHeader()+header('INSIGNIAS Y XP','home')+`<section class="badge-xp-hero"><div><small>EXPERIENCIA ACUMULADA</small><strong>${xp} XP</strong><span>${unlocked} logros desbloqueados</span></div><button onclick="v21CreateAchievement()">+ CREAR INSIGNIA</button></section>${sections.map(([title,cards])=>cards.length?`<section class="badge-section"><div class="badge-section-title">${title}<span>${cards.length}</span></div><div class="badge-grid">${cards.join('')}</div></section>`:'').join('')}`;
 }
 async function v21CreateAchievement(){const title=prompt('Nombre del logro');if(!title?.trim())return;const description=prompt('Descripción')||'',xp=Math.max(0,Number(prompt('Recompensa XP','20'))||0),scope=confirm('¿Compartido con Ara y Andrea? Aceptar = compartido; Cancelar = solo tú.')?'both':'self';const {data:a,error}=await sb.from('achievements').insert({creator_id:currentUser.id,title:title.trim(),description,category:'custom',goal_type:'manual',goal_value:1,xp_reward:xp,participant_scope:scope}).select().single();if(error)return alert(error.message);gymsibsV21.achievements.push(a);if(scope==='both'){for(const p of data.profiles){await sb.from('user_achievements').upsert({achievement_id:a.id,user_id:p.id,progress:0},{onConflict:'achievement_id,user_id'})}}else await sb.from('user_achievements').insert({achievement_id:a.id,user_id:currentUser.id,progress:0});await v21Load();render()}
 function v21Rewards(){const xp=gymsibsV21.xp.filter(x=>x.user_id===currentUser.id).reduce((a,x)=>a+Number(x.amount),0);return topHeader()+header('RECOMPENSAS','home')+v21Card('TU SALDO',`<div class="v21-xp">${xp} XP</div><button onclick="v21CreateReward()">+ CREAR PREMIO</button>`)+gymsibsV21.rewards.filter(x=>x.is_active).map(r=>`<article class="card v21-card"><h3>${v21Esc(r.title)}</h3><p>${v21Esc(r.description||'')}</p><b>${r.xp_cost} XP</b><button onclick="v21Redeem('${r.id}')">SOLICITAR CANJE</button></article>`).join('')+v21Card('MIS SOLICITUDES',gymsibsV21.redemptions.filter(x=>x.user_id===currentUser.id).map(x=>`<p>${v21Esc(x.status)} · ${x.xp_cost} XP</p>`).join('')||'Sin canjes todavía.')}
@@ -712,13 +741,97 @@ function v21StepBattle(){const range=weekRange(),players=gymsibsPlayers(),totals
 async function v21SetGoal(start){const goal=Math.max(1,Number(prompt('Objetivo semanal de pasos','70000'))||70000);let b=gymsibsV21.battles.find(x=>x.week_start===start);if(b){const {data:r,error}=await sb.from('step_battles').update({weekly_goal:goal}).eq('id',b.id).select().single();if(error)return alert(error.message);Object.assign(b,r)}else{const {data:r,error}=await sb.from('step_battles').insert({week_start:start,weekly_goal:goal}).select().single();if(error)return alert(error.message);gymsibsV21.battles.push(r)}render()}
 async function v21CloseBattle(start){let b=gymsibsV21.battles.find(x=>x.week_start===start);if(!b){const {data:r,error}=await sb.from('step_battles').insert({week_start:start}).select().single();if(error)return alert(error.message);b=r;gymsibsV21.battles.push(b)}if(b.status==='closed')return alert('Esta semana ya está cerrada.');const end=new Date(start+'T00:00:00');end.setDate(end.getDate()+6);const finish=end.toISOString().slice(0,10),players=gymsibsPlayers(),totals=players.map(p=>({p,total:data.steps.filter(x=>x.user_id===p.id&&x.date>=start&&x.date<=finish).reduce((a,x)=>a+Number(x.steps),0)}));if(totals.length!==2)return alert('No se han encontrado los dos perfiles.');const max=Math.max(...totals.map(x=>x.total)),winners=totals.filter(x=>x.total===max),bothGoal=totals.every(x=>x.total>=b.weekly_goal);for(const x of totals){const winner=winners.length===1&&x.total===max,tie=winners.length===2,bonus=bothGoal?b.goal_bonus_xp:0,award=(winner?b.winner_xp:tie?b.tie_xp:0)+bonus;await sb.from('step_battle_results').upsert({battle_id:b.id,user_id:x.p.id,total_steps:x.total,reached_goal:x.total>=b.weekly_goal,placement:winner?1:tie?1:2,xp_awarded:award},{onConflict:'battle_id,user_id'});if(award)await sb.from('xp_transactions').insert({user_id:x.p.id,amount:award,transaction_type:winner?'step_battle_win':tie?'step_tie':'step_goal_bonus',description:'Step Battle '+start,reference_id:b.id})}const {error}=await sb.from('step_battles').update({status:'closed'}).eq('id',b.id);if(error)return alert(error.message);await v21Load();render();alert('Semana cerrada y premios calculados.')}
 const v21OriginalRender=render;
-render=function(){if(!currentUser||loading){return v21OriginalRender()}if(screen==='routines'){document.getElementById('app').innerHTML=v21Routines();return}if(screen==='v21achievements'){document.getElementById('app').innerHTML=v21Achievements();return}if(screen==='rewards'){document.getElementById('app').innerHTML=v21Rewards();return}if(screen==='stepbattle'){document.getElementById('app').innerHTML=v21StepBattle();return}return v21OriginalRender()};
+render=function(){if(!currentUser||loading){return v21OriginalRender()}if(screen==='routines'){document.getElementById('app').innerHTML=v21Routines();return}if(screen==='v21achievements'||screen==='achievements'){document.getElementById('app').innerHTML=v21Achievements();return}if(screen==='rewards'){document.getElementById('app').innerHTML=v21Rewards();return}if(screen==='stepbattle'){document.getElementById('app').innerHTML=v21StepBattle();return}return v21OriginalRender()};
 const v21OriginalMore=more;
 more=function(){document.getElementById('menu')?.remove();document.body.insertAdjacentHTML('beforeend',`<div class="overlay" id="menu" onclick="this.remove()"><div class="more" onclick="event.stopPropagation()"><button onclick="menuGo('routines')">RUTINAS</button><button onclick="menuGo('v21achievements')">LOGROS Y XP</button><button onclick="menuGo('rewards')">RECOMPENSAS</button><button onclick="menuGo('stepbattle')">STEP BATTLE</button><button onclick="menuGo('calendar')">Calendario</button><button onclick="menuGo('exercises')">Ejercicios</button><button onclick="menuGo('progress')">Mi progreso</button><button onclick="menuGo('steps')">Pasos</button><button onclick="menuGo('duel')">Duelo</button><button onclick="menuGo('swimming')">Natación</button><button onclick="menuGo('pilates')">Pilates</button><button class="logout-btn" onclick="document.getElementById('menu')?.remove();logout()">CERRAR SESIÓN</button><button onclick="this.closest('.overlay').remove()">Cerrar</button></div></div>`)};
 const v21OriginalHandleSession=handleSession;
-handleSession=async function(s){await v21OriginalHandleSession(s);if(currentUser&&!loading){await v21Load()}};
-async function v21AwardDuel(){const range=previousWeekRange(),c=weeklyCompetition(range);const desc='Premio duelo '+range.start;const existing=gymsibsV21.xp.filter(x=>x.transaction_type==='duel_win'&&x.description===desc);if(existing.length){alert('El premio de este duelo ya se ha concedido.');return}const ranking=[...c.players].sort((a,b)=>c.totals[b.key].wins-c.totals[a.key].wins),tie=ranking.length>1&&c.totals[ranking[0].key].wins===c.totals[ranking[1].key].wins;if(tie){for(const p of c.players)await sb.from('xp_transactions').insert({user_id:p.id,amount:10,transaction_type:'duel_win',description:desc+' · empate'})}else if(ranking[0]){await sb.from('xp_transactions').insert({user_id:ranking[0].id,amount:20,transaction_type:'duel_win',description:desc+' · victoria'})}await v21Load();alert(tie?'Empate: 10 XP para cada una.':'Premio de 20 XP concedido a la ganadora.');render()}
+async function v22SyncDailyStepXP(){
+ if(!currentUser||!Array.isArray(data.steps)||!data.steps.length)return;
+ const players=gymsibsPlayers();
+ const allowed=new Set(players.map(p=>p.id));
+ for(const row of data.steps){
+  if(!allowed.has(row.user_id)||Number(row.steps)<=8000||!row.date)continue;
+  const awardKey=`daily-steps:${row.user_id}:${row.date}`;
+  const {error}=await sb.from('xp_transactions').insert({user_id:row.user_id,amount:5,transaction_type:'daily_steps_goal',description:`Objetivo diario superado: ${Number(row.steps).toLocaleString('es-ES')} pasos (${row.date})`,reference_id:row.id,award_key:awardKey});
+  if(error&&error.code!=='23505')console.warn('No se pudo recuperar XP de pasos:',error.message);
+ }
+}
+handleSession=async function(s){await v21OriginalHandleSession(s);if(currentUser&&!loading){await v21Load();await v22SyncDailyStepXP();await v22SyncAchievements();await v21Load();await v21AwardDuel()}};
+async function v21AwardDuel(){
+ const range=previousWeekRange(),c=weeklyCompetition(range),details=c.details.filter(d=>d.type==='exercise'&&d.id);
+ if(!details.length)return; 
+ let total=0,awards=0,errors=[];
+ for(const d of details){
+  const winners=d.winners||[];
+  if(!winners.length)continue;
+  const recipients=winners.length===2?c.players:c.players.filter(p=>winners.includes(p.key));
+  const amount=winners.length===2?10:20;
+  for(const p of recipients){
+   const awardKey=`duel-exercise:${range.start}:${d.id}:${p.id}`;
+   const {error}=await sb.from('xp_transactions').insert({user_id:p.id,amount,transaction_type:'duel_win',description:`Duelo ${range.start} · ${d.name} · ${winners.length===2?'empate':'victoria'}`,reference_id:d.id,award_key:awardKey});
+   if(!error){total+=amount;awards++}else if(error.code!=='23505')errors.push(`${d.name}: ${error.message}`);
+  }
+ }
+ await v21Load();
+ await v22SyncAchievements();
+ await v21Load();
+ if(awards===0&&!errors.length)return;
+ const summary=`Se han concedido ${total} XP en ${awards} premio(s), ejercicio por ejercicio. Cada victoria vale 20 XP y cada empate 10 XP para cada una.`;
+ alert(errors.length?summary+'\n\nAvisos: '+errors.join('\n'):summary);
+ render();
+}
 const v21OriginalDuel=duel;
-duel=function(){return v21OriginalDuel()+`<div class="card v21-card"><h3>PREMIO DEL DUELO</h3><p>20 XP para la ganadora; 10 XP para cada una si hay empate. Se concede una sola vez.</p><button onclick="v21AwardDuel()">CONCEDER PREMIO</button></div>`};
+duel=function(){return v21OriginalDuel()+`<div class="card v21-card"><h3>XP DEL DUELO</h3><p>20 XP por cada ejercicio ganado. 10 XP para cada una por ejercicio empatado. Los ejercicios sin comparación no dan puntos y cada premio se concede una sola vez.</p><button onclick="v21AwardDuel()">CALCULAR Y CONCEDER XP</button></div>`};
+
+
+/* GYMSIBS V22.5 · XP POR RUTINAS, DUELOS Y LOGROS AUTOMÁTICOS */
+function v22MonthMaxDays(records){const months={};records.forEach(r=>{if(!r.date)return;const k=r.date.slice(0,7);(months[k]??=new Set()).add(r.date)});return Math.max(0,...Object.values(months).map(x=>x.size))}
+function v22ConsecutiveWeeks(records){const weeks=[...new Set(records.map(r=>weekRangeFor(new Date(r.date+'T12:00:00')).start))].sort();let best=0,run=0,prev=null;for(const w of weeks){const d=new Date(w+'T12:00:00');if(prev){const expected=new Date(prev+'T12:00:00');expected.setDate(expected.getDate()+7);if(isoDate(expected)===w)run++;else run=1}else run=1;best=Math.max(best,run);prev=w}return best}
+function v22PersonalBestCount(records){const ordered=[...records].sort((a,b)=>`${a.date} ${a.created_at||''}`.localeCompare(`${b.date} ${b.created_at||''}`)),best={};let count=0;for(const r of ordered){const w=gymsibsWeight(r.weight),old=best[r.exercise_id]||0;if(w>old&&w>0){if(old>0)count++;best[r.exercise_id]=w}}return count}
+function v22WeeklySummaries(){const dates=[...data.records.map(x=>x.date),...data.steps.map(x=>x.date),...data.swimming.map(x=>x.date)].filter(Boolean);const starts=[...new Set(dates.map(d=>weekRangeFor(new Date(d+'T12:00:00')).start))].sort();return starts.map(start=>{const range=weekRangeFor(new Date(start+'T12:00:00'));return {range,c:weeklyCompetition(range)}})}
+function v22ProgressFor(a,user){
+ const uid=user.id,key=gymsibsPlayer(uid),mine=data.records.filter(r=>r.user_id===uid),sessions=gymsibsV21.sessions.filter(x=>x.user_id===uid&&x.status==='completed'),sessionDates=sessions.map(x=>x.session_date||x.finished_at?.slice(0,10)).filter(Boolean),unique=new Set(mine.map(r=>r.exercise_id)).size,maxWeight=Math.max(0,...mine.map(r=>gymsibsWeight(r.weight))),days=new Set(mine.map(r=>r.date)).size,groups=new Set(mine.map(r=>data.exercises.find(e=>e.id===r.exercise_id)?.group||'Otros')).size,personalBests=v22PersonalBestCount(mine),weekly=v22WeeklySummaries();
+ const winsByWeek=weekly.map(x=>({start:x.range.start,wins:x.c.details.filter(d=>d.type==='exercise'&&d.winners.includes(key)&&d.winners.length===1).length,losses:x.c.details.filter(d=>d.type==='exercise'&&d.active.includes(key)&&!d.winners.includes(key)).length,ties:x.c.details.filter(d=>d.type==='exercise'&&d.winners.length===2&&d.winners.includes(key)).length}));
+ const winWeeks=winsByWeek.filter(x=>x.wins>x.losses).length,totalExerciseWins=winsByWeek.reduce((n,x)=>n+x.wins,0),maxWeeklyWins=Math.max(0,...winsByWeek.map(x=>x.wins)),maxWeeklySessions=Math.max(0,...Object.values(sessions.reduce((o,x)=>{const d=x.session_date||x.finished_at?.slice(0,10);if(d){const w=weekRangeFor(new Date(d+'T12:00:00')).start;o[w]=(o[w]||0)+1}return o},{})));
+ let comeback=0,prev=null;for(const w of winsByWeek){if(prev&&prev.losses>prev.wins&&w.wins>w.losses)comeback++;prev=w}
+ const mobility=mine.filter(r=>/movilidad|flexibilidad/i.test(data.exercises.find(e=>e.id===r.exercise_id)?.group||'')).length;
+ const pilates=data.pilates.filter(x=>x.user_id===uid).reduce((n,x)=>n+Math.max(1,Number(x.classes)||1),0);
+ const swim=data.swimming.filter(x=>x.user_id===uid).length;
+ const monthlyDays=v22MonthMaxDays(mine),consecutive=v22ConsecutiveWeeks(mine);
+ const teamRecords=data.records.filter(r=>gymsibsPlayers().some(p=>p.id===r.user_id)).length;
+ const stepTeam=weekly.some(x=>{const ps=x.c.players;return ps.length===2&&ps.every(p=>data.steps.filter(z=>z.user_id===p.id&&z.date>=x.range.start&&z.date<=x.range.end).reduce((n,z)=>n+Number(z.steps||0),0)>=70000)});
+ const completedChallenge=gymsibsV21.participants.some(x=>x.user_id===uid&&x.completed_at);
+ const byTitle={
+  'Primera sesión':sessions.length,'Constancia inicial':sessions.length,'Rutina establecida':sessions.length,'Imparable':sessions.length,
+  'Mes en movimiento':monthlyDays,'Exploradora':unique,'Progreso real':personalBests,'Primer récord':personalBests,'Versátil':groups,'Equilibrio':mobility+pilates,
+  'Primera victoria':totalExerciseWins,'Racha ganadora':winWeeks,'Reina del duelo':winWeeks,'Comeback':comeback,
+  'Equipo en marcha':teamRecords,'A por todas':teamRecords,'Step Team':stepTeam?1:0,'Reto compartido':completedChallenge?1:0,
+  'KACHOW!':mine.length,'MACHINE':mine.length,'A POR EL SIGUIENTE':mine.length,'MODO BESTIA':mine.length,'CENTURION':mine.length,
+  'NO HAY QUIEN LA PARE':key==='ara'?maxWeeklyWins:0,'ARA-POCALYPSE':key==='ara'?maxWeeklyWins:0,'REINA DEL HIERRO':key==='ara'?maxWeeklyWins:0,
+  'ANDREA POWER':key==='andrea'?maxWeeklyWins:0,'ANDREA SUPREMA':key==='andrea'?maxWeeklyWins:0,'REINA DEL DUELO':key==='andrea'?maxWeeklyWins:0,
+  'COMEBACK KING':winsByWeek.reduce((n,x)=>n+x.ties,0),'TODO CONTROLADO':unique,'50 CLUB':maxWeight,'100 CLUB':maxWeight,'MODO TITÁN':maxWeight,'CONSTANCIA':days,'SIN FRENOS':days,'PRIMER RÉCORD':maxWeight>=40?1:0,
+  'Primera rutina':sessions.length,'Cinco rutinas':sessions.length,'Diez rutinas':sessions.length,'Veinticinco rutinas':sessions.length,
+  'Semana de tres rutinas':maxWeeklySessions,'Catálogo explorado':unique,'Constancia de cuatro semanas':consecutive,'Mes constante':monthlyDays,
+  'Fuerza 75':maxWeight,'Fuerza 125':maxWeight,'Fuerza 200':maxWeight,'Movilidad consciente':mobility+pilates,'Primera brazada':swim,
+  'Dúo imparable':teamRecords,'Semana dominante':winsByWeek.some(x=>x.wins>x.losses)?1:0,'Empate técnico':winsByWeek.reduce((n,x)=>n+x.ties,0)
+ };
+ return Math.max(0,Number(byTitle[a.title])||0);
+}
+async function v22SyncAchievements(){
+ if(!currentUser||!gymsibsV21.achievements.length)return;
+ const user=currentProfile||data.profiles.find(x=>x.id===currentUser.id)||{id:currentUser.id,name:currentName()};
+ const mine=gymsibsV21.userAchievements.filter(x=>x.user_id===user.id);
+ for(const a of gymsibsV21.achievements.filter(x=>x.is_active&&x.category!=='custom')){
+  const current=mine.find(x=>x.achievement_id===a.id),progress=v22ProgressFor(a,user),goal=Math.max(1,Number(a.goal_value)||1),already=!!current?.completed_at,done=already||progress>=goal;
+  const row={achievement_id:a.id,user_id:user.id,progress:Math.max(progress,Number(current?.progress)||0),completed_at:done?(current?.completed_at||new Date().toISOString()):null};
+  const {error:uaError}=await sb.from('user_achievements').upsert(row,{onConflict:'achievement_id,user_id'});
+  if(uaError){console.warn('No se pudo actualizar logro '+a.title,uaError.message);continue}
+  if(done){
+   const awardKey=`achievement:${user.id}:${a.id}`;
+   const {error:xpError}=await sb.from('xp_transactions').insert({user_id:user.id,amount:5,transaction_type:'achievement',description:'Logro desbloqueado: '+a.title,reference_id:a.id,award_key:awardKey});
+   if(xpError&&xpError.code!=='23505')console.warn('No se pudo conceder XP de logro '+a.title,xpError.message);
+  }
+ }
+}
 
 </script></body></html>
