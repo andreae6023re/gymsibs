@@ -1,7 +1,7 @@
 {
-  "name": "GYMSIBS",
-  "short_name": "GYMSIBS",
-  "description": "GYMSIBS · Ara y Andrea",
+  "name": "GymSis",
+  "short_name": "GymSis",
+  "description": "GymSis · Ara y Andrea",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
