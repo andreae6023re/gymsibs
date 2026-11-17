@@ -722,15 +722,32 @@ const v21OriginalMore=more;
 more=function(){document.getElementById('menu')?.remove();document.body.insertAdjacentHTML('beforeend',`<div class="overlay" id="menu" onclick="this.remove()"><div class="more" onclick="event.stopPropagation()"><button onclick="menuGo('routines')">RUTINAS</button><button onclick="menuGo('v21achievements')">LOGROS Y XP</button><button onclick="menuGo('rewards')">RECOMPENSAS</button><button onclick="menuGo('stepbattle')">STEP BATTLE</button><button onclick="menuGo('calendar')">Calendario</button><button onclick="menuGo('exercises')">Ejercicios</button><button onclick="menuGo('progress')">Mi progreso</button><button onclick="menuGo('steps')">Pasos</button><button onclick="menuGo('duel')">Duelo</button><button onclick="menuGo('swimming')">Natación</button><button onclick="menuGo('pilates')">Pilates</button><button class="logout-btn" onclick="document.getElementById('menu')?.remove();logout()">CERRAR SESIÓN</button><button onclick="this.closest('.overlay').remove()">Cerrar</button></div></div>`)};
 const v21OriginalHandleSession=handleSession;
 handleSession=async function(s){await v21OriginalHandleSession(s);if(currentUser&&!loading){await v21Load()}};
+// El premio del duelo se procesa una sola vez por semana y en segundo plano.
+// Nunca debe mostrar alertas ni volver a renderizar el duelo: eso provocaba el popup repetido.
+const v21DuelAwardsStarted=new Set();
 async function v21AwardDuel(){
- const range=previousWeekRange(),c=weeklyCompetition(range);let awarded=0;
- for(const d of c.details.filter(x=>x.type==='exercise')){
-  const active=d.active.map(k=>c.players.find(p=>p.key===k)).filter(Boolean);if(active.length!==2)continue;
-  const max=Math.max(...active.map(p=>Number(d.values[p.key])||0));const winners=active.filter(p=>(Number(d.values[p.key])||0)===max);
-  const recipients=winners.length===2?active:winners;
-  for(const p of recipients){const key=`duel-exercise:${range.start}:${d.exerciseId||d.name}:${p.id}`;const {error}=await sb.from('xp_transactions').insert({user_id:p.id,amount:winners.length===2?10:20,transaction_type:'duel_win',description:`Duelo ${d.name} · ${range.start} · ${winners.length===2?'empate':'victoria'}`,award_key:key});if(!error)awarded++;else if(!String(error.message||'').toLowerCase().includes('duplicate'))console.warn('XP duelo',error.message)}
+ const range=previousWeekRange(),weekKey=`gymsis-duel-xp:${range.start}`;
+ if(v21DuelAwardsStarted.has(weekKey))return;
+ v21DuelAwardsStarted.add(weekKey);
+ try{
+  const c=weeklyCompetition(range);
+  for(const d of c.details.filter(x=>x.type==='exercise')){
+   const active=d.active.map(k=>c.players.find(p=>p.key===k)).filter(Boolean);
+   if(active.length!==2)continue;
+   const max=Math.max(...active.map(p=>Number(d.values[p.key])||0));
+   const winners=active.filter(p=>(Number(d.values[p.key])||0)===max);
+   const recipients=winners.length===2?active:winners;
+   for(const p of recipients){
+    const key=`duel-exercise:${range.start}:${d.exerciseId||d.name}:${p.id}`;
+    const {error}=await sb.from('xp_transactions').insert({user_id:p.id,amount:winners.length===2?10:20,transaction_type:'duel_win',description:`Duelo ${d.name} · ${range.start} · ${winners.length===2?'empate':'victoria'}`,award_key:key});
+    if(error&&!String(error.message||'').toLowerCase().includes('duplicate'))console.warn('XP duelo',error.message);
+   }
+  }
+  await v21Load();
+ }catch(error){
+  v21DuelAwardsStarted.delete(weekKey);
+  console.warn('No se han podido procesar los XP del duelo:',error);
  }
- await v21Load();alert(`Recompensas procesadas: ${awarded} movimientos XP. 20 XP por ejercicio ganado y 10 XP por empate.`);render();
 }
 const v21OriginalDuel=duel;
 duel=function(){setTimeout(()=>v21AwardDuel(),0);return v21OriginalDuel()+`<div class="card v21-card"><h3>XP DEL DUELO</h3><p>20 XP por cada ejercicio ganado y 10 XP por ejercicio empatado para cada participante. Los premios se registran una sola vez.</p></div>`};
