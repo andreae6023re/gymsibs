@@ -478,14 +478,14 @@ function weeklyCompetition(range){
  const addResult=(name,icon,type,values,exerciseId=null)=>{
    const active=players.filter(p=>(Number(values[p.key])||0)>0);
    if(!active.length)return;
-   const bothPresent=players.length<2||active.length===players.length;
+   // Los ejercicios solo participan si AMBAS personas tienen un peso registrado.
+   // Si falta cualquiera de los dos registros, el ejercicio no suma puntos ni XP.
+   if(type==='exercise' && (players.length!==2 || active.length!==2))return;
    let winners=[];
-   if(bothPresent){
-     const max=Math.max(...active.map(p=>Number(values[p.key])||0));
-     winners=active.filter(p=>(Number(values[p.key])||0)===max).map(p=>p.key);
-     if(winners.length===1)totals[winners[0]].wins++;else ties++;
-   }
-   details.push({name,icon,type,values,winners,active:active.map(p=>p.key),exerciseId,pending:!bothPresent});
+   const max=Math.max(...active.map(p=>Number(values[p.key])||0));
+   winners=active.filter(p=>(Number(values[p.key])||0)===max).map(p=>p.key);
+   if(winners.length===1)totals[winners[0]].wins++;else ties++;
+   details.push({name,icon,type,values,winners,active:active.map(p=>p.key),exerciseId,pending:false});
  };
  Object.entries(rows).forEach(([id,x])=>addResult(x.name,x.icon,'exercise',x.values,id));
  addResult('Pasos','👟','steps',Object.fromEntries(players.map(p=>[p.key,totals[p.key].steps])));
@@ -501,7 +501,7 @@ function duel(){
  const range=previousWeekRange(),c=weeklyCompetition(range),players=c.players;
  const ranking=[...players].sort((a,b)=>c.totals[b.key].wins-c.totals[a.key].wins);
  const scoreCards=players.map(p=>`<div class="fighter" style="background:${p.color}22;border-color:${p.color}"><small>${esc(p.name.toUpperCase())}</small><b>${c.totals[p.key].wins}</b><small>PUNTOS</small></div>`).join('');
- const rows=c.details.map(d=>{const values=players.map(p=>({k:p.key,v:Number(d.values[p.key])||0,p}));const max=Math.max(...values.map(x=>x.v));const winners=values.filter(x=>x.v===max&&x.v>0).map(x=>x.p.name);const result=d.pending?'FALTA UN REGISTRO':winners.length===1?'🏆 GANA '+esc(winners[0].toUpperCase()):'🤝 EMPATE';return `<div class="duel-v11-card"><h3>${d.icon} ${esc(d.name.toUpperCase())}</h3>${values.map(x=>`<div class="day-item"><span style="color:${x.p.color};font-weight:1000">${esc(x.p.name)}</span><b>${x.v>0?(d.type==='exercise'?gymsibsWeight(x.v)+' kg':d.type==='swim'?x.v+' largos':Number(x.v).toLocaleString('es-ES')):'Sin registro'}</b></div>`).join('')}<div class="step-winner">${result}</div></div>`}).join('');
+ const rows=c.details.map(d=>{const values=players.map(p=>({k:p.key,v:Number(d.values[p.key])||0,p}));const max=Math.max(...values.map(x=>x.v));const winners=values.filter(x=>x.v===max&&x.v>0).map(x=>x.p.name);const result=winners.length===1?'🏆 GANA '+esc(winners[0].toUpperCase()):'🤝 EMPATE';return `<div class="duel-v11-card"><h3>${d.icon} ${esc(d.name.toUpperCase())}</h3>${values.map(x=>`<div class="day-item"><span style="color:${x.p.color};font-weight:1000">${esc(x.p.name)}</span><b>${x.v>0?(d.type==='exercise'?gymsibsWeight(x.v)+' kg':d.type==='swim'?x.v+' largos':Number(x.v).toLocaleString('es-ES')):'Sin registro'}</b></div>`).join('')}<div class="step-winner">${result}</div></div>`}).join('');
  const winner=ranking.length&&c.overall!=='tie'?`👑 ${ranking[0].name.toUpperCase()} GANA LA SEMANA`:'🤝 EMPATE EN CABEZA';
  return topHeader()+header('DUELO')+`<div class="duel-v11"><div class="duel-title">⚔️ ARENA GYMSIS ⚔️</div><div class="duel-sub">SEMANA CERRADA · ${range.start} → ${range.end}</div><div class="versus two-player">${scoreCards}</div><div class="lead ${c.overall==='tie'?'tie':''}">${winner}</div><div class="record">${c.details.length} PRUEBAS COMPARADAS · ${c.ties} EMPATES</div></div>${rows||'<p class="note">Todavía no hay datos comparables en la semana cerrada.</p>'}${historicalDuels()}`;
 }
@@ -786,6 +786,6 @@ async function v21AwardDuel(){
  }
 }
 const v21OriginalDuel=duel;
-duel=function(){setTimeout(()=>v21AwardDuel(),0);return v21OriginalDuel()+`<div class="card v21-card"><h3>XP DEL DUELO</h3><p>20 XP por cada ejercicio ganado y 10 XP por ejercicio empatado para cada participante. Los premios se registran una sola vez.</p></div>`};
+duel=function(){setTimeout(()=>v21AwardDuel(),0);return v21OriginalDuel()+`<div class="card v21-card"><h3>XP DEL DUELO</h3><p>Solo cuentan ejercicios con peso registrado por ambas participantes. 20 XP por victoria y 10 XP por participante en cada empate. Los premios se registran una sola vez.</p></div>`};
 
 </script></body></html>

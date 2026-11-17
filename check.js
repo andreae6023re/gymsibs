@@ -1,5 +1,5 @@
 
-/* GYMSIBS 10.3 · numeric input hardening */
+/* GymSis 10.3 · numeric input hardening */
 function gymsibsNumber(value){
   if(value === null || value === undefined) return 0;
   const s=String(value).trim().replace(',','.');
@@ -9,10 +9,10 @@ function gymsibsNumber(value){
 }
 
 
-/* GYMSIBS · perfiles */
-const GYMSIBS_ARA_ID = '4bea2fa0-438b-4f8c-b287-f909d32ac988';
+/* GymSis · perfiles */
+const GymSis_ARA_ID = '4bea2fa0-438b-4f8c-b287-f909d32ac988';
 function gymsibsPlayer(userId){
-  if(userId===GYMSIBS_ARA_ID) return 'ara';
+  if(userId===GymSis_ARA_ID) return 'ara';
   const profile=(typeof data!=='undefined'?data.profiles:[]).find(p=>p.id===userId);
   if(profile?.name) return profile.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'');
   return null;
@@ -33,7 +33,7 @@ function gymsibsWeight(value){
 /* Fallback CDN: if jsDelivr is unavailable, load Supabase from unpkg. */
 
 
-/* GYMSIBS V13.2 splash failsafe: independent from Supabase/app startup. */
+/* GymSis V13.2 splash failsafe: independent from Supabase/app startup. */
 (function(){
   const splash=document.getElementById("splash");
   if(!splash) return;
@@ -62,7 +62,7 @@ let navIndex=0;
 const todayISO=()=>new Date().toISOString().slice(0,10);
 const esc=(v)=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function authScreen(message=""){
- document.getElementById("app").innerHTML=`<div class="auth-screen"><div class="auth-box"><img class="auth-logo" src="${MINI_LOGO}" alt="GYMSIBS"><h1 class="auth-title">GYMSIBS</h1><p class="auth-sub">¿QUIÉN VIENE A ROMPERLO TODO?</p><div class="auth-user-grid"><button class="auth-user ara ${selectedLogin==='ara'?'selected':''}" onclick="selectLogin('ara')">🩷 ARA</button><button class="auth-user andrea ${selectedLogin==='andrea'?'selected':''}" onclick="selectLogin('andrea')">💜 ANDREA</button></div><label class="auth-field"><span>CONTRASEÑA</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')login()"></label><button class="auth-submit" onclick="login()">ENTRAR ⚡</button><div class="auth-msg ${message?'err':''}">${esc(message)}</div><p class="auth-note">Cada persona registra solo sus propios datos. Compartís el duelo entre Ara y Andrea.</p></div></div>`;
+ document.getElementById("app").innerHTML=`<div class="auth-screen"><div class="auth-box"><img class="auth-logo" src="${MINI_LOGO}" alt="GymSis"><h1 class="auth-title">GymSis</h1><p class="auth-sub">¿QUIÉN VIENE A ROMPERLO TODO?</p><div class="auth-user-grid"><button class="auth-user ara ${selectedLogin==='ara'?'selected':''}" onclick="selectLogin('ara')">🩷 ARA</button><button class="auth-user andrea ${selectedLogin==='andrea'?'selected':''}" onclick="selectLogin('andrea')">💜 ANDREA</button></div><label class="auth-field"><span>CONTRASEÑA</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')login()"></label><button class="auth-submit" onclick="login()">ENTRAR ⚡</button><div class="auth-msg ${message?'err':''}">${esc(message)}</div><p class="auth-note">Cada persona registra solo sus propios datos. Compartís el duelo entre Ara y Andrea.</p></div></div>`;
 }
 function selectLogin(who){selectedLogin=who;authScreen();setTimeout(()=>document.getElementById('loginPassword')?.focus(),50)}
 async function login(){
@@ -71,17 +71,30 @@ async function login(){
  const {data:authData,error}=await sb.auth.signInWithPassword({email,password});if(error){authScreen('No se ha podido entrar. Comprueba la contraseña.');return}await handleSession(authData.session)
 }
 async function logout(){await sb.auth.signOut();session=null;currentUser=null;currentProfile=null;data={profiles:[],exercises:[],records:[],steps:[],swimming:[],pilates:[]};selectedLogin='ara';authScreen()}
-async function handleSession(s){session=s;currentUser=s?.user||null;if(!currentUser){loading=false;authScreen();return}if(currentUser.id==='bd71c9fe-a4ae-4ae9-8ab9-5c9e1eb33650'){await sb.auth.signOut();session=null;currentUser=null;loading=false;authScreen('El perfil de Sergio ya no está disponible en GYMSIBS.');return}loading=true;render();try{await loadData();}catch(err){console.error(err);loading=false;authScreen(`No se han podido cargar los datos. ${err?.message||'Recarga la app.'}`);return}loading=false;render();maybeShowMondayDuel()}
+async function handleSession(s){session=s;currentUser=s?.user||null;if(!currentUser){loading=false;authScreen();return}if(currentUser.id==='bd71c9fe-a4ae-4ae9-8ab9-5c9e1eb33650'){await sb.auth.signOut();session=null;currentUser=null;loading=false;authScreen('El perfil de Sergio ya no está disponible en GymSis.');return}loading=true;render();try{await loadData();}catch(err){console.error(err);loading=false;authScreen(`No se han podido cargar los datos. ${err?.message||'Recarga la app.'}`);return}loading=false;render();maybeShowMondayDuel()}
 async function loadData(){
   if(!window.supabase || !sb) throw new Error('La librería de Supabase no se ha podido cargar.');
 
   // Cargamos primero SOLO las cuatro tablas que ya existían y que hacen funcionar la app.
-  // Natación es opcional: si esa tabla tiene cualquier problema, no debe bloquear GYMSIBS.
+  // Natación es opcional: si esa tabla tiene cualquier problema, no debe bloquear GymSis.
+  const fetchAllRows=async(table,columns,orders=[])=>{
+    const pageSize=1000;let from=0,all=[];
+    while(true){
+      let q=sb.from(table).select(columns);
+      for(const [column,ascending] of orders)q=q.order(column,{ascending});
+      const {data:page,error}=await q.range(from,from+pageSize-1);
+      if(error)throw error;
+      all=all.concat(page||[]);
+      if(!page||page.length<pageSize)break;
+      from+=pageSize;
+    }
+    return {data:all,error:null};
+  };
   const [p,e,w,st]=await Promise.all([
-    sb.from('profiles').select('id,name,color').order('name'),
-    sb.from('exercises').select('id,name,group_name,icon,active').order('name'),
-    sb.from('workouts').select('id,user_id,exercise_id,date,weight,reps,created_at').order('date',{ascending:false}).order('created_at',{ascending:false}),
-    sb.from('steps').select('id,user_id,date,steps,created_at').order('date',{ascending:false})
+    fetchAllRows('profiles','id,name,color',[['name',true]]),
+    fetchAllRows('exercises','id,name,group_name,icon,active',[['name',true]]),
+    fetchAllRows('workouts','id,user_id,exercise_id,date,weight,reps,created_at',[['date',false],['created_at',false]]),
+    fetchAllRows('steps','id,user_id,date,steps,created_at',[['date',false]])
   ]);
 
   const coreErrors=[
@@ -90,7 +103,7 @@ async function loadData(){
 
   if(coreErrors.length){
     const [table,x]=coreErrors[0];
-    console.error('GYMSIBS loadData error:',table,x.error);
+    console.error('GymSis loadData error:',table,x.error);
     throw new Error(`Error cargando ${table}: ${x.error?.message||x.error?.details||'error desconocido'}`);
   }
 
@@ -109,7 +122,7 @@ async function loadData(){
 
   // Natación no puede impedir que la aplicación arranque.
   try{
-    const sw=await sb.from('swimming').select('id,user_id,date,lengths,created_at').order('date',{ascending:false});
+    const sw=await fetchAllRows('swimming','id,user_id,date,lengths,created_at',[['date',false]]);
     if(sw.error){
       console.warn('Natación no disponible todavía:',sw.error);
       data.swimming=[];
@@ -128,24 +141,47 @@ async function loadData(){
 function exerciseName(id){return data.exercises.find(x=>x.id===id)?.name||id||'Ejercicio'}
 function currentName(){return (currentProfile?.name||selectedLogin||'').toLowerCase()}
 function mondayOf(date=new Date()){const d=new Date(date);d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d}
-function isoDate(d){return d.toISOString().slice(0,10)}
+function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function weekRange(){const start=mondayOf();const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)}}
 function weeklyWorkouts(){const r=weekRange();return data.records.filter(x=>x.date>=r.start&&x.date<=r.end)}
 function weekRangeFor(date){const start=mondayOf(date);const end=new Date(start);end.setDate(end.getDate()+6);return {start:isoDate(start),end:isoDate(end)};}
 function previousWeekRange(){const d=mondayOf();d.setDate(d.getDate()-7);return weekRangeFor(d);}
 function isMonday(){return new Date().getDay()===1;}
 function weeklyCompetition(range){
- const players=gymsibsPlayers();const totals=Object.fromEntries(players.map(p=>[p.key,{...p,wins:0,steps:0,swim:0}]));
- const rows={};data.exercises.filter(e=>e.active!==false).forEach(e=>rows[e.id]={name:e.name,icon:e.icon||'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))});
- data.records.filter(w=>w.date>=range.start&&w.date<=range.end).forEach(w=>{const key=gymsibsPlayer(w.user_id);if(key&&rows[w.exercise_id])rows[w.exercise_id].values[key]=Math.max(rows[w.exercise_id].values[key],gymsibsWeight(w.weight));});
- data.steps.filter(x=>x.date>=range.start&&x.date<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].steps+=Number(x.steps)||0;});
- data.swimming.filter(x=>x.date>=range.start&&x.date<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].swim+=Math.max(0,Math.floor(Number(x.lengths)||0));});
+ const players=gymsibsPlayers();
+ const totals=Object.fromEntries(players.map(p=>[p.key,{...p,wins:0,steps:0,swim:0}]));
+ const rows={};
+ // Se incluyen ejercicios activos y también los que tengan registros en la semana,
+ // aunque se hayan archivado después: el historial nunca debe desaparecer del duelo.
+ data.exercises.forEach(e=>rows[e.id]={name:e.name,icon:e.icon||'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))});
+ const weekRecords=data.records.filter(w=>String(w.date||'').slice(0,10)>=range.start&&String(w.date||'').slice(0,10)<=range.end);
+ weekRecords.forEach(w=>{
+   const key=gymsibsPlayer(w.user_id);
+   if(!key||!totals[key])return;
+   if(!rows[w.exercise_id])rows[w.exercise_id]={name:exerciseName(w.exercise_id),icon:'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))};
+   rows[w.exercise_id].values[key]=Math.max(rows[w.exercise_id].values[key],gymsibsWeight(w.weight));
+ });
+ data.steps.filter(x=>String(x.date||'').slice(0,10)>=range.start&&String(x.date||'').slice(0,10)<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].steps+=Number(x.steps)||0;});
+ data.swimming.filter(x=>String(x.date||'').slice(0,10)>=range.start&&String(x.date||'').slice(0,10)<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].swim+=Math.max(0,Math.floor(Number(x.lengths)||0));});
  const details=[];let ties=0;
- const addResult=(name,icon,type,values)=>{const active=players.filter(p=>(Number(values[p.key])||0)>0);if(active.length<2)return;const max=Math.max(...active.map(p=>Number(values[p.key])||0));const winners=active.filter(p=>(Number(values[p.key])||0)===max);if(winners.length===1){totals[winners[0].key].wins++;}else ties++;details.push({name,icon,type,values,winners:winners.map(p=>p.key),active:active.map(p=>p.key)});};
- Object.values(rows).forEach(x=>addResult(x.name,x.icon,'exercise',x.values));
+ const addResult=(name,icon,type,values,exerciseId=null)=>{
+   const active=players.filter(p=>(Number(values[p.key])||0)>0);
+   if(!active.length)return;
+   // Los ejercicios solo participan si AMBAS personas tienen un peso registrado.
+   // Si falta cualquiera de los dos registros, el ejercicio no suma puntos ni XP.
+   if(type==='exercise' && (players.length!==2 || active.length!==2))return;
+   let winners=[];
+   const max=Math.max(...active.map(p=>Number(values[p.key])||0));
+   winners=active.filter(p=>(Number(values[p.key])||0)===max).map(p=>p.key);
+   if(winners.length===1)totals[winners[0]].wins++;else ties++;
+   details.push({name,icon,type,values,winners,active:active.map(p=>p.key),exerciseId,pending:false});
+ };
+ Object.entries(rows).forEach(([id,x])=>addResult(x.name,x.icon,'exercise',x.values,id));
  addResult('Pasos','👟','steps',Object.fromEntries(players.map(p=>[p.key,totals[p.key].steps])));
  addResult('Natación','🏊','swim',Object.fromEntries(players.map(p=>[p.key,totals[p.key].swim])));
- const ranking=[...players].sort((a,b)=>totals[b.key].wins-totals[a.key].wins);const top=ranking[0];const overall=ranking.length>1&&totals[top.key].wins===totals[ranking[1].key].wins?'tie':top?.key||'tie';
+ const ranking=[...players].sort((a,b)=>totals[b.key].wins-totals[a.key].wins);
+ const top=ranking[0];
+ const overall=ranking.length>1&&totals[top.key].wins===totals[ranking[1].key].wins?'tie':top?.key||'tie';
  return {range,players,totals,rows,details,ties,overall};
 }
 function formatValue(d){return d.type==='steps'?Number(d).toLocaleString('es-ES'):d.type==='swim'?Number(d).toLocaleString('es-ES')+' largos':gymsibsWeight(d)+' kg';}
@@ -154,9 +190,9 @@ function duel(){
  const range=previousWeekRange(),c=weeklyCompetition(range),players=c.players;
  const ranking=[...players].sort((a,b)=>c.totals[b.key].wins-c.totals[a.key].wins);
  const scoreCards=players.map(p=>`<div class="fighter" style="background:${p.color}22;border-color:${p.color}"><small>${esc(p.name.toUpperCase())}</small><b>${c.totals[p.key].wins}</b><small>PUNTOS</small></div>`).join('');
- const rows=c.details.map(d=>{const values=d.active.map(k=>({k,v:d.values[k],p:players.find(p=>p.key===k)}));const max=Math.max(...values.map(x=>Number(x.v)||0));const winners=values.filter(x=>Number(x.v)===max).map(x=>x.p.name);return `<div class="duel-v11-card"><h3>${d.icon} ${esc(d.name.toUpperCase())}</h3>${values.map(x=>`<div class="day-item"><span style="color:${x.p.color};font-weight:1000">${esc(x.p.name)}</span><b>${d.type==='exercise'?gymsibsWeight(x.v)+' kg':d.type==='swim'?x.v+' largos':Number(x.v).toLocaleString('es-ES')}</b></div>`).join('')}<div class="step-winner">${winners.length===1?'🏆 GANA '+esc(winners[0].toUpperCase()):'🤝 EMPATE'}</div></div>`}).join('');
+ const rows=c.details.map(d=>{const values=players.map(p=>({k:p.key,v:Number(d.values[p.key])||0,p}));const max=Math.max(...values.map(x=>x.v));const winners=values.filter(x=>x.v===max&&x.v>0).map(x=>x.p.name);const result=winners.length===1?'🏆 GANA '+esc(winners[0].toUpperCase()):'🤝 EMPATE';return `<div class="duel-v11-card"><h3>${d.icon} ${esc(d.name.toUpperCase())}</h3>${values.map(x=>`<div class="day-item"><span style="color:${x.p.color};font-weight:1000">${esc(x.p.name)}</span><b>${x.v>0?(d.type==='exercise'?gymsibsWeight(x.v)+' kg':d.type==='swim'?x.v+' largos':Number(x.v).toLocaleString('es-ES')):'Sin registro'}</b></div>`).join('')}<div class="step-winner">${result}</div></div>`}).join('');
  const winner=ranking.length&&c.overall!=='tie'?`👑 ${ranking[0].name.toUpperCase()} GANA LA SEMANA`:'🤝 EMPATE EN CABEZA';
- return topHeader()+header('DUELO')+`<div class="duel-v11"><div class="duel-title">⚔️ ARENA GYMSIBS ⚔️</div><div class="duel-sub">SEMANA CERRADA · ${range.start} → ${range.end}</div><div class="versus two-player">${scoreCards}</div><div class="lead ${c.overall==='tie'?'tie':''}">${winner}</div><div class="record">${c.details.length} PRUEBAS COMPARADAS · ${c.ties} EMPATES</div></div>${rows||'<p class="note">Todavía no hay datos comparables en la semana cerrada.</p>'}${historicalDuels()}`;
+ return topHeader()+header('DUELO')+`<div class="duel-v11"><div class="duel-title">⚔️ ARENA GYMSIS ⚔️</div><div class="duel-sub">SEMANA CERRADA · ${range.start} → ${range.end}</div><div class="versus two-player">${scoreCards}</div><div class="lead ${c.overall==='tie'?'tie':''}">${winner}</div><div class="record">${c.details.length} PRUEBAS COMPARADAS · ${c.ties} EMPATES</div></div>${rows||'<p class="note">Todavía no hay datos comparables en la semana cerrada.</p>'}${historicalDuels()}`;
 }
 function totals(){const c=weeklyCompetition(weekRange());return Object.fromEntries(c.players.map(p=>[p.key,c.totals[p.key].wins]));}
 function stepTotals(){const r=weekRange(),out=Object.fromEntries(gymsibsPlayers().map(p=>[p.key,0]));data.steps.filter(x=>x.date>=r.start&&x.date<=r.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&k in out)out[k]+=Number(x.steps)||0});return out}
@@ -165,10 +201,10 @@ function topHeader(){const avatar=currentName()==='andrea'?'<img class="header-a
 function render(){if(!currentUser){authScreen();return}if(loading){document.getElementById('app').innerHTML='<div class="auth-screen"><div class="auth-box"><h1 class="auth-title">CARGANDO...</h1></div></div>';return}const t=totals();let html='';if(screen==='home')html=home(t);if(screen==='exercises')html=exercises();if(screen==='workout')html=workout();if(screen==='progress')html=progress(t);if(screen==='duel')html=duel(t);if(screen==='achievements')html=achievements(t);if(screen==='calendar')html=calendar();if(screen==='steps')html=stepsScreen();if(screen==='swimming')html=swimmingScreen();if(screen==='pilates')html=pilatesScreen();document.getElementById('app').innerHTML=html;if(result)document.body.insertAdjacentHTML('beforeend',resultOverlay());if(screen==='progress')setTimeout(checkProgressImprovement,80)}
 function swimTotals(){const r=weekRange(),out=Object.fromEntries(gymsibsPlayers().map(p=>[p.key,0]));data.swimming.filter(x=>x.date>=r.start&&x.date<=r.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&k in out)out[k]+=Math.max(0,Math.floor(Number(x.lengths)||0))});return out}
 function distanceText(lengths){const meters=Math.max(0,Math.floor(Number(lengths)||0))*25;const km=meters/1000;return `${meters.toLocaleString('es-ES')} m · ${km.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} km`}
-function home(t){const players=gymsibsPlayers(),last=data.records.find(r=>r.user_id===currentUser.id),st=stepTotals(),sw=swimTotals(),wr=weekRange();const latest=last?`<div class="card latest"><label>ÚLTIMO ENTRENAMIENTO</label><h3>${exerciseName(last.exercise_id)}</h3><div class="row"><span style="color:${currentProfile?.color||'#171019'}">${currentProfile?.name||currentName()}</span><b>${Number(last.weight)||0} kg × ${Number(last.reps)||0}</b></div><em>¡KACHOW!</em></div>`:'';const scores=players.map(p=>`<div class="player-score" style="border-color:${p.color}"><span style="color:${p.color}">${esc(p.name.toUpperCase())}</span><b>${t[p.key]||0}</b></div>`).join('');const stepRows=players.map(p=>`<b style="color:${p.color}">${esc(p.name)} · ${(st[p.key]||0).toLocaleString('es-ES')}</b>`).join('');const swimRows=players.map(p=>`<b style="color:${p.color}">${esc(p.name)} · ${(sw[p.key]||0).toLocaleString('es-ES')} largos</b>`).join('');return topHeader()+header('GYMSIBS')+`<div class="card"><label>ESTA SEMANA · ${wr.start} → ${wr.end}</label><div class="score two-player">${scores}</div></div>${latest}<div class="steps-card"><small>👟 PASOS ESTA SEMANA</small><div class="player-metrics">${stepRows}</div></div><div class="steps-card swim-summary"><small>🏊 NATACIÓN ESTA SEMANA · PISCINA DE 25 M</small><div class="player-metrics">${swimRows}</div></div><div class="grid"><button class="action p" onclick="go('exercises')">🏋 ENTRENAR</button><button class="action bl" onclick="go('progress')">📈 PROGRESO</button><button class="action ye" onclick="go('duel')">⚡ DUELO</button><button class="action li" onclick="go('achievements')">🏆 LOGROS</button></div><button class="wide" onclick="go('steps')">👟 REGISTRAR PASOS</button><button class="wide" onclick="go('swimming')">🏊 REGISTRAR NATACIÓN</button><button class="wide" onclick="go('pilates')">🧘 REGISTRAR PILATES</button><button class="wide" onclick="go('calendar')">📅 CALENDARIO</button>`}
+function home(t){const players=gymsibsPlayers(),last=data.records.find(r=>r.user_id===currentUser.id),st=stepTotals(),sw=swimTotals(),wr=weekRange();const latest=last?`<div class="card latest"><label>ÚLTIMO ENTRENAMIENTO</label><h3>${exerciseName(last.exercise_id)}</h3><div class="row"><span style="color:${currentProfile?.color||'#171019'}">${currentProfile?.name||currentName()}</span><b>${Number(last.weight)||0} kg × ${Number(last.reps)||0}</b></div><em>¡KACHOW!</em></div>`:'';const scores=players.map(p=>`<div class="player-score" style="border-color:${p.color}"><span style="color:${p.color}">${esc(p.name.toUpperCase())}</span><b>${t[p.key]||0}</b></div>`).join('');const stepRows=players.map(p=>`<b style="color:${p.color}">${esc(p.name)} · ${(st[p.key]||0).toLocaleString('es-ES')}</b>`).join('');const swimRows=players.map(p=>`<b style="color:${p.color}">${esc(p.name)} · ${(sw[p.key]||0).toLocaleString('es-ES')} largos</b>`).join('');return topHeader()+header('GymSis')+`<div class="card"><label>ESTA SEMANA · ${wr.start} → ${wr.end}</label><div class="score two-player">${scores}</div></div>${latest}<div class="steps-card"><small>👟 PASOS ESTA SEMANA</small><div class="player-metrics">${stepRows}</div></div><div class="steps-card swim-summary"><small>🏊 NATACIÓN ESTA SEMANA · PISCINA DE 25 M</small><div class="player-metrics">${swimRows}</div></div><div class="grid"><button class="action p" onclick="go('exercises')">🏋 ENTRENAR</button><button class="action bl" onclick="go('progress')">📈 PROGRESO</button><button class="action ye" onclick="go('duel')">⚡ DUELO</button><button class="action li" onclick="go('achievements')">🏆 LOGROS</button></div><button class="wide" onclick="go('steps')">👟 REGISTRAR PASOS</button><button class="wide" onclick="go('swimming')">🏊 REGISTRAR NATACIÓN</button><button class="wide" onclick="go('pilates')">🧘 REGISTRAR PILATES</button><button class="wide" onclick="go('calendar')">📅 CALENDARIO</button>`}
 function exerciseGroups(){return ['Pierna','Pecho','Espalda','Hombros','Bíceps','Brazos','Core','Glúteos','Cardio','Otros']}
 function exercises(){const available=data.exercises.filter(e=>e.active!==false);return topHeader()+header('ELIGE TU EJERCICIO','home')+`<div class="search">Buscar ejercicio... <b>⌕</b></div><div>${available.map(e=>`<div class="exercise"><button class="exercise-main" onclick="openEx('${e.id}')"><span>${e.icon}</span><div><b>${esc(e.name)}</b><small>${esc(e.group)}</small></div><strong>›</strong></button><div class="exercise-actions"><button class="exercise-edit" aria-label="Editar ejercicio" onclick="event.stopPropagation();editExercise('${e.id}')">✏️</button><button class="exercise-delete" aria-label="Eliminar ejercicio" onclick="event.stopPropagation();deleteExercise('${e.id}')">🗑️</button></div></div>`).join('')}</div>${adding?`<div class="addform"><input id="newex" placeholder="Nombre del ejercicio"><select id="newex-group">${exerciseGroups().map(g=>`<option value="${g}">${g}</option>`).join('')}</select><button onclick="addEx()">AÑADIR</button></div>`:`<button class="add" onclick="adding=true;render()">＋ AÑADIR EJERCICIO</button>`}`}
-function workout(){const e=data.exercises.find(x=>x.id===exid&&x.active!==false)||data.exercises.find(x=>x.active!==false);if(!e)return header('SIN EJERCICIOS','home')+'<p class="note">No hay ejercicios disponibles.</p>';const last=data.records.find(r=>r.exercise_id===e.id&&r.user_id===currentUser.id),v={weight:gymsibsWeight(last?.weight),reps:gymsibsWeight(last?.reps)};return topHeader()+header(e.name.toUpperCase(),'exercises')+`<div class="panel ${currentName()==='ara'?'ara':'andrea'}"><div class="name">${currentProfile?.name?.toUpperCase()||currentName().toUpperCase()}</div>${metrics('me',v)}</div><div class="week-card"><h3>📅 DUELO CADA LUNES</h3><p class="note">Tú solo introduces tus datos. Cada lunes GYMSIBS compara la semana anterior.</p></div><button class="register" onclick="register()">¡REGISTRAR! ⚡</button><p class="note">Tus datos se guardan en Supabase y estarán disponibles para Ara y Andrea.</p>`}
+function workout(){const e=data.exercises.find(x=>x.id===exid&&x.active!==false)||data.exercises.find(x=>x.active!==false);if(!e)return header('SIN EJERCICIOS','home')+'<p class="note">No hay ejercicios disponibles.</p>';const last=data.records.find(r=>r.exercise_id===e.id&&r.user_id===currentUser.id),v={weight:gymsibsWeight(last?.weight),reps:gymsibsWeight(last?.reps)};return topHeader()+header(e.name.toUpperCase(),'exercises')+`<div class="panel ${currentName()==='ara'?'ara':'andrea'}"><div class="name">${currentProfile?.name?.toUpperCase()||currentName().toUpperCase()}</div>${metrics('me',v)}</div><div class="week-card"><h3>📅 DUELO CADA LUNES</h3><p class="note">Tú solo introduces tus datos. Cada lunes GymSis compara la semana anterior.</p></div><button class="register" onclick="register()">¡REGISTRAR! ⚡</button><p class="note">Tus datos se guardan en Supabase y estarán disponibles para Ara y Andrea.</p>`}
 function metrics(prefix,v){return `<div class="metrics"><label class="metric"><small>PESO (KG)</small><input id="${prefix}w" type="number" step=".5" min="0" value="${v.weight}"><div><button onclick="step('${prefix}w',-1)">−</button><button onclick="step('${prefix}w',1)">+</button></div></label><label class="metric"><small>REPETICIONES</small><input id="${prefix}r" type="number" min="0" value="${v.reps}"><div><button onclick="step('${prefix}r',-1)">−</button><button onclick="step('${prefix}r',1)">+</button></div></label></div>`}
 function progress(){
  const players=gymsibsPlayers();if(!players.some(p=>p.key===person))person=players[0]?.key||'ara';const selected=players.find(p=>p.key===person)||players[0];const mine=data.records.filter(x=>x.user_id===selected?.id);
@@ -227,7 +263,7 @@ async function saveDayWorkout(){
  data.records.unshift(row);document.getElementById('dayAddModal')?.remove();showCalendarDay(date);showToast('ENTRENAMIENTO AÑADIDO ✓');
 }
 function resultOverlay(){return ''; }
-function go(s){screen=s;result=null;navIndex++;history.pushState({gymsibs:true,screen,index:navIndex},'',location.href);render()}
+async function go(s){screen=s;result=null;navIndex++;history.pushState({gymsibs:true,screen,index:navIndex},'',location.href);render();if(s==='duel'){try{await loadData();render();}catch(err){console.error('No se pudo actualizar el duelo:',err);showToast('No se han podido actualizar los datos del duelo');}}}
 function goBack(fallback='home'){if(navIndex>0){history.back()}else{screen=fallback;render()}}
 window.addEventListener('popstate',e=>{if(e.state?.gymsibs){navIndex=Math.max(0,Number(e.state.index)||0);screen=e.state.screen||'home';result=null;render()}else if(currentUser){navIndex=0;screen='home';result=null;render()}});
 function openEx(id){exid=id;screen='workout';navIndex++;history.pushState({gymsibs:true,screen:'workout',index:navIndex},'',location.href);render()}function step(id,n){let x=document.getElementById(id);x.value=Math.max(0,(Number(x.value)||0)+n)}
@@ -272,7 +308,9 @@ async function saveSteps(){
  const steps=Math.max(0,Math.floor(Number(document.getElementById('stepsToday')?.value)||0)),date=document.getElementById('stepDate')?.value||todayISO();if(!date||date>todayISO()){alert('Selecciona una fecha válida, hoy o anterior.');return}stepsDateSelected=date;
  const {data:row,error}=await sb.from('steps').upsert({user_id:currentUser.id,date,steps},{onConflict:'user_id,date'}).select('id,user_id,date,steps,created_at').single();
  if(error){alert('No se han podido guardar los pasos.');console.error(error);return}
- data.steps=data.steps.filter(x=>!(x.user_id===currentUser.id&&x.date===date));data.steps.unshift(row);render();showToast('PASOS GUARDADOS ✓');
+ data.steps=data.steps.filter(x=>!(x.user_id===currentUser.id&&x.date===date));data.steps.unshift(row);
+ if(steps>8000){const {error:xpError}=await sb.from('xp_transactions').insert({user_id:currentUser.id,amount:5,transaction_type:'step_goal_bonus',description:'Objetivo diario: más de 8.000 pasos · '+date,reference_id:row.id,award_key:'steps-over-8000:'+currentUser.id+':'+date});if(xpError&&!String(xpError.message||'').toLowerCase().includes('duplicate'))console.warn('XP pasos',xpError.message)}
+ await v21Load();render();showToast(steps>8000?'PASOS GUARDADOS · +5 XP':'PASOS GUARDADOS ✓');
 }
 async function deleteSteps(id){
  if(!confirm('¿Borrar este registro de pasos?'))return;
@@ -300,7 +338,7 @@ async function savePilates(){const classes=Math.max(0,Math.floor(Number(document
 async function deletePilates(id){if(!confirm('¿Borrar este registro de Pilates?'))return;const {error}=await sb.from('pilates').delete().eq('id',id).eq('user_id',currentUser.id);if(error){alert('No se ha podido borrar.');return}data.pilates=data.pilates.filter(x=>x.id!==id);render()}
 function swimmingScreen(){
  const me=currentUser.id,own=data.swimming.filter(x=>x.user_id===me).slice(0,14),today=data.swimming.find(x=>x.user_id===me&&x.date===todayISO()),wr=weekRange(),weekOwn=data.swimming.filter(x=>x.user_id===me&&x.date>=wr.start&&x.date<=wr.end).reduce((n,x)=>n+Math.max(0,Math.floor(Number(x.lengths)||0)),0);
- return topHeader()+header('NATACIÓN','home')+`<div class="swim-hero"><div>🏊</div><h2>¡A NADAR!</h2><p>Piscina de 25 metros. Registra solo tus largos y GYMSIBS calcula automáticamente los metros y kilómetros.</p></div><div class="step-form"><label class="auth-field"><span>LARGOS DE HOY · ${todayISO()}</span><input id="swimToday" type="number" min="0" step="1" value="${Number(today?.lengths)||0}"></label><button onclick="saveSwimming()">GUARDAR LARGOS 🏊</button></div><div class="card swim-summary"><label>MI SEMANA · ${weekOwn.toLocaleString('es-ES')} LARGOS</label><h2 style="font:42px Bangers;margin:4px 0">${distanceText(weekOwn)}</h2></div><div class="card"><label>MIS REGISTROS</label>${own.map(x=>`<div class="history-item"><div><span>${x.date}</span><b>${Number(x.lengths).toLocaleString('es-ES')} largos</b><small style="display:block;font-weight:900">${distanceText(x.lengths)}</small></div><div class="history-actions"><button class="delete-btn" onclick="deleteSwimming('${x.id}')">🗑 BORRAR</button></div></div>`).join('')||'<p class="note">Todavía no has registrado natación.</p>'}</div>`;
+ return topHeader()+header('NATACIÓN','home')+`<div class="swim-hero"><div>🏊</div><h2>¡A NADAR!</h2><p>Piscina de 25 metros. Registra solo tus largos y GymSis calcula automáticamente los metros y kilómetros.</p></div><div class="step-form"><label class="auth-field"><span>LARGOS DE HOY · ${todayISO()}</span><input id="swimToday" type="number" min="0" step="1" value="${Number(today?.lengths)||0}"></label><button onclick="saveSwimming()">GUARDAR LARGOS 🏊</button></div><div class="card swim-summary"><label>MI SEMANA · ${weekOwn.toLocaleString('es-ES')} LARGOS</label><h2 style="font:42px Bangers;margin:4px 0">${distanceText(weekOwn)}</h2></div><div class="card"><label>MIS REGISTROS</label>${own.map(x=>`<div class="history-item"><div><span>${x.date}</span><b>${Number(x.lengths).toLocaleString('es-ES')} largos</b><small style="display:block;font-weight:900">${distanceText(x.lengths)}</small></div><div class="history-actions"><button class="delete-btn" onclick="deleteSwimming('${x.id}')">🗑 BORRAR</button></div></div>`).join('')||'<p class="note">Todavía no has registrado natación.</p>'}</div>`;
 }
 function showToast(text){
  const old=document.getElementById('gymsibsToast');if(old)old.remove();
@@ -324,7 +362,7 @@ async function maybeShowMondayDuel(){if(!isMonday())return;const prev=previousWe
 function closeResult(){document.getElementById('result')?.remove();result=null;screen='exercises';render()}
 history.replaceState({gymsibs:true,screen:'home',index:0},'',location.href);
 if(sb){sb.auth.getSession().then(x=>handleSession(x.data.session)).catch(err=>{console.error(err);loading=false;authScreen('No se ha podido conectar con la sesión. Recarga la app.')});sb.auth.onAuthStateChange((_event,s)=>{if(s?.user?.id!==currentUser?.id||!s)handleSession(s)});}else{loading=false;authScreen('No se ha podido cargar el sistema de acceso. Recarga la app.');}
-/* GYMSIBS V21 - módulos nuevos conectados a Supabase */
+/* GymSis V21 - módulos nuevos conectados a Supabase */
 const gymsibsV21={routines:[],routineExercises:[],sessions:[],sessionSets:[],achievements:[],userAchievements:[],xp:[],rewards:[],redemptions:[],challenges:[],participants:[],battles:[],battleResults:[]};
 async function v21Load(){
  const specs=[['routines','routines','*'],['routineExercises','routine_exercises','*'],['sessions','workout_sessions','*'],['sessionSets','workout_session_sets','*'],['achievements','achievements','*'],['userAchievements','user_achievements','*'],['xp','xp_transactions','*'],['rewards','rewards','*'],['redemptions','reward_redemptions','*'],['challenges','custom_challenges','*'],['participants','challenge_participants','*'],['battles','step_battles','*'],['battleResults','step_battle_results','*']];
@@ -369,13 +407,18 @@ function v21ActiveSession(id){
  const s=gymsibsV21.sessions.find(x=>x.id===id),sets=gymsibsV21.sessionSets.filter(x=>x.session_id===id).sort((a,b)=>(a.position-b.position)||(a.set_number-b.set_number));
  const grouped=[];for(const x of sets){let g=grouped.find(z=>z.position===x.position&&z.exercise_id===x.exercise_id);if(!g){g={position:x.position,exercise_id:x.exercise_id,name:x.exercise_name,sets:[]};grouped.push(g)}g.sets.push(x)}
  document.getElementById('v21Session')?.remove();const m=document.createElement('div');m.className='edit-modal v21-session-modal';m.id='v21Session';
- m.innerHTML=`<div class="edit-card v21-session-card"><div class="v21-session-head"><div><small>GYMSIBS · ENTRENAMIENTO</small><h2>${v21Esc(s?.routine_name||'ENTRENAMIENTO')}</h2></div><button class="v21-session-close" aria-label="Cerrar" onclick="document.getElementById('v21Session')?.remove()">×</button></div><div class="v21-session-scroll">${grouped.map((g,i)=>`<section class="v21-exercise-block"><div class="v21-exercise-title"><span class="v21-exercise-number">${i+1}</span><div><b>${v21Esc(g.name)}</b><small>${g.sets.length} series previstas</small></div></div><div class="v21-series-head"><span>SERIE</span><span>KG</span><span>REPS</span><span>OK</span></div><div id="v21-series-${i}">${g.sets.map(x=>v21SessionSetRow(x)).join('')}</div><button class="v21-add-set" onclick="v21AddSessionSet('${id}','${v21Esc(g.exercise_id||'')}','${v21Esc(g.name)}',${g.position},${i})">+ AÑADIR SERIE</button></section>`).join('')||'<p class="note">No hay ejercicios en esta sesión.</p>'}</div><div class="v21-session-actions"><button class="secondary" onclick="v21SaveSession('${id}','partial')">GUARDAR Y SALIR</button><button onclick="v21SaveSession('${id}','completed')">FINALIZAR SESIÓN</button></div></div>`;
+ m.innerHTML=`<div class="edit-card v21-session-card"><div class="v21-session-head"><div><small>GymSis · ENTRENAMIENTO</small><h2>${v21Esc(s?.routine_name||'ENTRENAMIENTO')}</h2></div><button class="v21-session-close" aria-label="Cerrar" onclick="document.getElementById('v21Session')?.remove()">×</button></div><div class="v21-session-scroll">${grouped.map((g,i)=>`<section class="v21-exercise-block"><div class="v21-exercise-title"><span class="v21-exercise-number">${i+1}</span><div><b>${v21Esc(g.name)}</b><small>${g.sets.length} series previstas</small></div></div><div class="v21-series-head"><span>SERIE</span><span>KG</span><span>REPS</span><span>OK</span></div><div id="v21-series-${i}">${g.sets.map(x=>v21SessionSetRow(x)).join('')}</div><button class="v21-add-set" onclick="v21AddSessionSet('${id}','${v21Esc(g.exercise_id||'')}','${v21Esc(g.name)}',${g.position},${i})">+ AÑADIR SERIE</button></section>`).join('')||'<p class="note">No hay ejercicios en esta sesión.</p>'}</div><div class="v21-session-actions"><button class="secondary" onclick="v21SaveSession('${id}','partial')">GUARDAR Y SALIR</button><button onclick="v21SaveSession('${id}','completed')">FINALIZAR SESIÓN</button></div></div>`;
  document.body.appendChild(m);
 }
 function v21SessionSetRow(x){return `<div class="v21-series-row" data-set-id="${x.id}"><span class="v21-series-number">${x.set_number}</span><input aria-label="Kilos serie ${x.set_number}" type="number" min="0" step="0.5" id="v21w-${x.id}" value="${Number(x.weight)||0}" placeholder="kg"><input aria-label="Repeticiones serie ${x.set_number}" type="number" min="0" step="1" id="v21r-${x.id}" value="${Number(x.reps)||0}" placeholder="reps"><input aria-label="Serie completada" type="checkbox" id="v21c-${x.id}" ${x.completed?'checked':''}></div>`}
 async function v21AddSessionSet(sessionId,exerciseId,exerciseName,position,groupIndex){const current=gymsibsV21.sessionSets.filter(x=>x.session_id===sessionId&&x.position===position),next=Math.max(0,...current.map(x=>Number(x.set_number)||0))+1;const {data:z,error}=await sb.from('workout_session_sets').insert({session_id:sessionId,exercise_id:exerciseId||null,exercise_name:exerciseName,position,set_number:next,reps:0,weight:0,completed:false}).select().single();if(error)return alert('No se pudo añadir la serie: '+error.message);gymsibsV21.sessionSets.push(z);const target=document.getElementById('v21-series-'+groupIndex);target?.insertAdjacentHTML('beforeend',v21SessionSetRow(z));const card=document.querySelector('#v21Session .v21-session-scroll');if(card)card.scrollTop=card.scrollHeight;}
 
-async function v21SaveSession(id,status){for(const x of gymsibsV21.sessionSets.filter(x=>x.session_id===id)){const weight=Number(document.getElementById('v21w-'+x.id)?.value)||0,reps=Number(document.getElementById('v21r-'+x.id)?.value)||0,completed=!!document.getElementById('v21c-'+x.id)?.checked;await sb.from('workout_session_sets').update({weight,reps,completed}).eq('id',x.id);Object.assign(x,{weight,reps,completed})}const {error}=await sb.from('workout_sessions').update({status,finished_at:new Date().toISOString()}).eq('id',id).eq('user_id',currentUser.id);if(error)return alert(error.message);document.getElementById('v21Session')?.remove();showToast(status==='completed'?'SESIÓN FINALIZADA':'SESIÓN GUARDADA');}
+async function v21SaveSession(id,status){
+ for(const x of gymsibsV21.sessionSets.filter(x=>x.session_id===id)){const weight=Number(document.getElementById('v21w-'+x.id)?.value)||0,reps=Number(document.getElementById('v21r-'+x.id)?.value)||0,completed=!!document.getElementById('v21c-'+x.id)?.checked;const {error:se}=await sb.from('workout_session_sets').update({weight,reps,completed}).eq('id',x.id);if(se)return alert('No se pudo guardar una serie: '+se.message);Object.assign(x,{weight,reps,completed})}
+ const {error}=await sb.from('workout_sessions').update({status,finished_at:new Date().toISOString()}).eq('id',id).eq('user_id',currentUser.id);if(error)return alert(error.message);
+ if(status==='completed'){const key='routine-complete:'+id;const {error:xpError}=await sb.from('xp_transactions').insert({user_id:currentUser.id,amount:10,transaction_type:'routine_complete',description:'Rutina completada · '+(gymsibsV21.sessions.find(x=>x.id===id)?.routine_name||'Entrenamiento'),reference_id:id,award_key:key});if(xpError&&!String(xpError.message||'').toLowerCase().includes('duplicate'))console.warn('XP rutina',xpError.message);}
+ document.getElementById('v21Session')?.remove();await v21Load();showToast(status==='completed'?'SESIÓN FINALIZADA · +10 XP':'SESIÓN GUARDADA');
+}
 function v21Achievements(){
  const mine=gymsibsV21.userAchievements.filter(x=>x.user_id===currentUser.id),xp=gymsibsV21.xp.filter(x=>x.user_id===currentUser.id).reduce((a,x)=>a+Number(x.amount),0);
  const my=data.records.filter(r=>r.user_id===currentUser.id),all=data.records,maxWeight=Math.max(0,...all.map(r=>gymsibsWeight(r.weight))),unique=new Set(my.map(r=>r.exercise_id)).size,w=weeklyScore();
@@ -386,12 +429,12 @@ function v21Achievements(){
  ];
  const legacyUnlocked=legacy.filter(x=>x[3]).length;
  const iconFor=a=>({ 'Primera sesión':'🏁','Constancia inicial':'📅','Rutina establecida':'🧱','Imparable':'🚀','Mes en movimiento':'🗓️','Exploradora':'🧭','Progreso real':'📈','Primer récord':'🏆','Versátil':'🎯','Equilibrio':'⚖️','Primera victoria':'🥇','Racha ganadora':'🔥','Reina del duelo':'👑','Comeback':'🔄','Equipo en marcha':'🤝','A por todas':'💥','Step Team':'👟','Reto compartido':'🫶'}[a.title]||'⭐');
- const dbBadges=gymsibsV21.achievements.filter(a=>a.is_active).map(a=>{const u=mine.find(x=>x.achievement_id===a.id),done=!!u?.completed_at;return {icon:iconFor(a),title:a.title,desc:a.description||'Logro de GYMSIBS',done,category:a.category==='competitive'?'DUELOS':a.category==='shared'?'EN EQUIPO':'PERSONAL',xp:Number(a.xp_reward)||0,progress:u?.progress??0,goal:a.goal_value??1,custom:a.category==='custom'};});
+ const dbBadges=gymsibsV21.achievements.filter(a=>a.is_active).map(a=>{const u=mine.find(x=>x.achievement_id===a.id),done=!!u?.completed_at;return {icon:iconFor(a),title:a.title,desc:a.description||'Logro de GymSis',done,category:a.category==='competitive'?'DUELOS':a.category==='shared'?'EN EQUIPO':'PERSONAL',xp:Number(a.xp_reward)||0,progress:u?.progress??0,goal:a.goal_value??1,custom:a.category==='custom'};});
  const badgeCard=(b)=>`<article class="badge-medal ${b.done?'earned':''}"><div class="badge-medal-icon">${b.icon}</div><div class="badge-medal-name">${v21Esc(b.title)}</div><div class="badge-medal-desc">${v21Esc(b.desc)}</div><div class="badge-medal-foot">${b.done?'<b>DESBLOQUEADA</b>':`<span>${b.progress??0} / ${b.goal??'—'}</span>`}${b.xp?`<em>+${b.xp} XP</em>`:''}</div></article>`;
  const sections=[['TUS LOGROS ORIGINALES',legacy.map(x=>badgeCard({icon:x[0],title:x[1],desc:x[2],done:x[3],category:x[4],xp:0}))],['NUEVAS INSIGNIAS',dbBadges.filter(x=>!x.custom).map(badgeCard)],['LOGROS PERSONALIZADOS',dbBadges.filter(x=>x.custom).map(badgeCard)]];
  return topHeader()+header('INSIGNIAS Y XP','home')+`<section class="badge-xp-hero"><div><small>EXPERIENCIA ACUMULADA</small><strong>${xp} XP</strong><span>${legacyUnlocked+dbBadges.filter(x=>x.done).length} insignias desbloqueadas</span></div><button onclick="v21CreateAchievement()">+ CREAR INSIGNIA</button></section>${sections.map(([title,cards])=>cards.length?`<section class="badge-section"><div class="badge-section-title">${title}<span>${cards.length}</span></div><div class="badge-grid">${cards.join('')}</div></section>`:'').join('')}`;
 }
-async function v21CreateAchievement(){const title=prompt('Nombre del logro');if(!title?.trim())return;const description=prompt('Descripción')||'',xp=Math.max(0,Number(prompt('Recompensa XP','20'))||0),scope=confirm('¿Compartido con Ara y Andrea? Aceptar = compartido; Cancelar = solo tú.')?'both':'self';const {data:a,error}=await sb.from('achievements').insert({creator_id:currentUser.id,title:title.trim(),description,category:'custom',goal_type:'manual',goal_value:1,xp_reward:xp,participant_scope:scope}).select().single();if(error)return alert(error.message);gymsibsV21.achievements.push(a);if(scope==='both'){for(const p of data.profiles){await sb.from('user_achievements').upsert({achievement_id:a.id,user_id:p.id,progress:0},{onConflict:'achievement_id,user_id'})}}else await sb.from('user_achievements').insert({achievement_id:a.id,user_id:currentUser.id,progress:0});await v21Load();render()}
+async function v21CreateAchievement(){const title=prompt('Nombre del logro');if(!title?.trim())return;const description=prompt('Descripción')||'',xp=Math.max(0,Number(prompt('Recompensa XP','5'))||0),scope=confirm('¿Compartido con Ara y Andrea? Aceptar = compartido; Cancelar = solo tú.')?'both':'self';const {data:a,error}=await sb.from('achievements').insert({creator_id:currentUser.id,title:title.trim(),description,category:'custom',goal_type:'manual',goal_value:1,xp_reward:xp,participant_scope:scope}).select().single();if(error)return alert(error.message);gymsibsV21.achievements.push(a);if(scope==='both'){for(const p of data.profiles){await sb.from('user_achievements').upsert({achievement_id:a.id,user_id:p.id,progress:0},{onConflict:'achievement_id,user_id'})}}else await sb.from('user_achievements').insert({achievement_id:a.id,user_id:currentUser.id,progress:0});await v21Load();render()}
 function v21Rewards(){const xp=gymsibsV21.xp.filter(x=>x.user_id===currentUser.id).reduce((a,x)=>a+Number(x.amount),0);return topHeader()+header('RECOMPENSAS','home')+v21Card('TU SALDO',`<div class="v21-xp">${xp} XP</div><button onclick="v21CreateReward()">+ CREAR PREMIO</button>`)+gymsibsV21.rewards.filter(x=>x.is_active).map(r=>`<article class="card v21-card"><h3>${v21Esc(r.title)}</h3><p>${v21Esc(r.description||'')}</p><b>${r.xp_cost} XP</b><button onclick="v21Redeem('${r.id}')">SOLICITAR CANJE</button></article>`).join('')+v21Card('MIS SOLICITUDES',gymsibsV21.redemptions.filter(x=>x.user_id===currentUser.id).map(x=>`<p>${v21Esc(x.status)} · ${x.xp_cost} XP</p>`).join('')||'Sin canjes todavía.')}
 async function v21CreateReward(){const title=prompt('Nombre del premio');if(!title?.trim())return;const description=prompt('Descripción')||'',cost=Math.max(0,Number(prompt('Coste en XP','50'))||0);const {data:r,error}=await sb.from('rewards').insert({creator_id:currentUser.id,title:title.trim(),description,xp_cost:cost,is_active:true}).select().single();if(error)return alert(error.message);gymsibsV21.rewards.push(r);render()}
 async function v21Redeem(id){const r=gymsibsV21.rewards.find(x=>x.id===id);if(!r)return;const bal=gymsibsV21.xp.filter(x=>x.user_id===currentUser.id).reduce((a,x)=>a+Number(x.amount),0);if(bal<r.xp_cost)return alert('No tienes XP suficiente.');const {data:d,error}=await sb.from('reward_redemptions').insert({reward_id:id,user_id:currentUser.id,xp_cost:r.xp_cost,status:'requested'}).select().single();if(error)return alert(error.message);await sb.from('xp_transactions').insert({user_id:currentUser.id,amount:-r.xp_cost,transaction_type:'reward_redemption',description:'Canje: '+r.title,reference_id:d.id});await v21Load();render();alert('Solicitud de canje enviada.')}
@@ -404,7 +447,33 @@ const v21OriginalMore=more;
 more=function(){document.getElementById('menu')?.remove();document.body.insertAdjacentHTML('beforeend',`<div class="overlay" id="menu" onclick="this.remove()"><div class="more" onclick="event.stopPropagation()"><button onclick="menuGo('routines')">RUTINAS</button><button onclick="menuGo('v21achievements')">LOGROS Y XP</button><button onclick="menuGo('rewards')">RECOMPENSAS</button><button onclick="menuGo('stepbattle')">STEP BATTLE</button><button onclick="menuGo('calendar')">Calendario</button><button onclick="menuGo('exercises')">Ejercicios</button><button onclick="menuGo('progress')">Mi progreso</button><button onclick="menuGo('steps')">Pasos</button><button onclick="menuGo('duel')">Duelo</button><button onclick="menuGo('swimming')">Natación</button><button onclick="menuGo('pilates')">Pilates</button><button class="logout-btn" onclick="document.getElementById('menu')?.remove();logout()">CERRAR SESIÓN</button><button onclick="this.closest('.overlay').remove()">Cerrar</button></div></div>`)};
 const v21OriginalHandleSession=handleSession;
 handleSession=async function(s){await v21OriginalHandleSession(s);if(currentUser&&!loading){await v21Load()}};
-async function v21AwardDuel(){const range=previousWeekRange(),c=weeklyCompetition(range);const desc='Premio duelo '+range.start;const existing=gymsibsV21.xp.filter(x=>x.transaction_type==='duel_win'&&x.description===desc);if(existing.length){alert('El premio de este duelo ya se ha concedido.');return}const ranking=[...c.players].sort((a,b)=>c.totals[b.key].wins-c.totals[a.key].wins),tie=ranking.length>1&&c.totals[ranking[0].key].wins===c.totals[ranking[1].key].wins;if(tie){for(const p of c.players)await sb.from('xp_transactions').insert({user_id:p.id,amount:10,transaction_type:'duel_win',description:desc+' · empate'})}else if(ranking[0]){await sb.from('xp_transactions').insert({user_id:ranking[0].id,amount:20,transaction_type:'duel_win',description:desc+' · victoria'})}await v21Load();alert(tie?'Empate: 10 XP para cada una.':'Premio de 20 XP concedido a la ganadora.');render()}
+// El premio del duelo se procesa una sola vez por semana y en segundo plano.
+// Nunca debe mostrar alertas ni volver a renderizar el duelo: eso provocaba el popup repetido.
+const v21DuelAwardsStarted=new Set();
+async function v21AwardDuel(){
+ const range=previousWeekRange(),weekKey=`gymsis-duel-xp:${range.start}`;
+ if(v21DuelAwardsStarted.has(weekKey))return;
+ v21DuelAwardsStarted.add(weekKey);
+ try{
+  const c=weeklyCompetition(range);
+  for(const d of c.details.filter(x=>x.type==='exercise')){
+   const active=d.active.map(k=>c.players.find(p=>p.key===k)).filter(Boolean);
+   if(active.length!==2)continue;
+   const max=Math.max(...active.map(p=>Number(d.values[p.key])||0));
+   const winners=active.filter(p=>(Number(d.values[p.key])||0)===max);
+   const recipients=winners.length===2?active:winners;
+   for(const p of recipients){
+    const key=`duel-exercise:${range.start}:${d.exerciseId||d.name}:${p.id}`;
+    const {error}=await sb.from('xp_transactions').insert({user_id:p.id,amount:winners.length===2?10:20,transaction_type:'duel_win',description:`Duelo ${d.name} · ${range.start} · ${winners.length===2?'empate':'victoria'}`,award_key:key});
+    if(error&&!String(error.message||'').toLowerCase().includes('duplicate'))console.warn('XP duelo',error.message);
+   }
+  }
+  await v21Load();
+ }catch(error){
+  v21DuelAwardsStarted.delete(weekKey);
+  console.warn('No se han podido procesar los XP del duelo:',error);
+ }
+}
 const v21OriginalDuel=duel;
-duel=function(){return v21OriginalDuel()+`<div class="card v21-card"><h3>PREMIO DEL DUELO</h3><p>20 XP para la ganadora; 10 XP para cada una si hay empate. Se concede una sola vez.</p><button onclick="v21AwardDuel()">CONCEDER PREMIO</button></div>`};
+duel=function(){setTimeout(()=>v21AwardDuel(),0);return v21OriginalDuel()+`<div class="card v21-card"><h3>XP DEL DUELO</h3><p>Solo cuentan ejercicios con peso registrado por ambas participantes. 20 XP por victoria y 10 XP por participante en cada empate. Los premios se registran una sola vez.</p></div>`};
 
