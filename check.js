@@ -441,6 +441,42 @@ async function v21Redeem(id){const r=gymsibsV21.rewards.find(x=>x.id===id);if(!r
 function v21StepBattle(){const range=weekRange(),players=gymsibsPlayers(),totals=Object.fromEntries(players.map(p=>[p.key,data.steps.filter(x=>x.user_id===p.id&&x.date>=range.start&&x.date<=range.end).reduce((a,x)=>a+Number(x.steps),0)])),battle=gymsibsV21.battles.find(x=>x.week_start===range.start);return topHeader()+header('STEP BATTLE','home')+v21Card('COMPETICIÓN SEMANAL',`<p>${range.start} → ${range.end}</p>${players.map(p=>`<div class="week-total"><b>${v21Esc(p.name)}</b><strong>${(totals[p.key]||0).toLocaleString('es-ES')} pasos</strong></div>`).join('')}<p>Objetivo: ${(battle?.weekly_goal||70000).toLocaleString('es-ES')} pasos por semana</p><button onclick="v21SetGoal('${range.start}')">CAMBIAR OBJETIVO</button><button onclick="v21CloseBattle('${range.start}')">CERRAR SEMANA Y CALCULAR RESULTADO</button>`)+v21Card('HISTORIAL',gymsibsV21.battleResults.map(x=>`<p>${x.user_id===currentUser.id?'TÚ':'OTRA PARTICIPANTE'} · ${Number(x.total_steps).toLocaleString('es-ES')} pasos · ${x.xp_awarded} XP</p>`).join('')||'Todavía no hay resultados cerrados.')}
 async function v21SetGoal(start){const goal=Math.max(1,Number(prompt('Objetivo semanal de pasos','70000'))||70000);let b=gymsibsV21.battles.find(x=>x.week_start===start);if(b){const {data:r,error}=await sb.from('step_battles').update({weekly_goal:goal}).eq('id',b.id).select().single();if(error)return alert(error.message);Object.assign(b,r)}else{const {data:r,error}=await sb.from('step_battles').insert({week_start:start,weekly_goal:goal}).select().single();if(error)return alert(error.message);gymsibsV21.battles.push(r)}render()}
 async function v21CloseBattle(start){let b=gymsibsV21.battles.find(x=>x.week_start===start);if(!b){const {data:r,error}=await sb.from('step_battles').insert({week_start:start}).select().single();if(error)return alert(error.message);b=r;gymsibsV21.battles.push(b)}if(b.status==='closed')return alert('Esta semana ya está cerrada.');const end=new Date(start+'T00:00:00');end.setDate(end.getDate()+6);const finish=end.toISOString().slice(0,10),players=gymsibsPlayers(),totals=players.map(p=>({p,total:data.steps.filter(x=>x.user_id===p.id&&x.date>=start&&x.date<=finish).reduce((a,x)=>a+Number(x.steps),0)}));if(totals.length!==2)return alert('No se han encontrado los dos perfiles.');const max=Math.max(...totals.map(x=>x.total)),winners=totals.filter(x=>x.total===max),bothGoal=totals.every(x=>x.total>=b.weekly_goal);for(const x of totals){const winner=winners.length===1&&x.total===max,tie=winners.length===2,bonus=bothGoal?b.goal_bonus_xp:0,award=(winner?b.winner_xp:tie?b.tie_xp:0)+bonus;await sb.from('step_battle_results').upsert({battle_id:b.id,user_id:x.p.id,total_steps:x.total,reached_goal:x.total>=b.weekly_goal,placement:winner?1:tie?1:2,xp_awarded:award},{onConflict:'battle_id,user_id'});if(award)await sb.from('xp_transactions').insert({user_id:x.p.id,amount:award,transaction_type:winner?'step_battle_win':tie?'step_tie':'step_goal_bonus',description:'Step Battle '+start,reference_id:b.id})}const {error}=await sb.from('step_battles').update({status:'closed'}).eq('id',b.id);if(error)return alert(error.message);await v21Load();render();alert('Semana cerrada y premios calculados.')}
+// HOME UX V24: dashboard unificado, con accesos a las mismas pantallas que el menú.
+home=function(t){
+ const players=gymsibsPlayers(),wr=weekRange(),st=stepTotals(),sw=swimTotals();
+ const mine=data.records.filter(r=>r.user_id===currentUser.id);
+ const last=[...mine].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+ const xp=gymsibsV21.xp.filter(x=>x.user_id===currentUser.id).reduce((a,x)=>a+(Number(x.amount)||0),0);
+ const unlocked=gymsibsV21.userAchievements.filter(x=>x.user_id===currentUser.id&&x.completed_at).length;
+ const myRoutines=gymsibsV21.routines.filter(x=>x.user_id===currentUser.id&&!x.is_archived).length;
+ const weekMine=data.records.filter(x=>x.user_id===currentUser.id&&String(x.date||'').slice(0,10)>=wr.start&&String(x.date||'').slice(0,10)<=wr.end).length;
+ const scores=players.map(p=>`<div class="ux-home-player"><span style="color:${p.color}">${esc(p.name)}</span><strong>${t[p.key]||0}</strong><small>VICTORIAS</small></div>`).join('');
+ const lastCard=last?`<button class="ux-home-last" onclick="go('progress')"><span class="ux-kicker">TU ÚLTIMO REGISTRO · ${esc(String(last.date||'').slice(0,10))}</span><strong>${esc(exerciseName(last.exercise_id))}</strong><span>${gymsibsWeight(last.weight)} kg <i>×</i> ${gymsibsWeight(last.reps)} repeticiones</span><b>VER PROGRESO →</b></button>`:`<div class="ux-home-last ux-home-empty"><span class="ux-kicker">EMPIEZA POR AQUÍ</span><strong>Tu próximo entrenamiento empieza hoy</strong><span>Registra tu primer ejercicio y sigue tu evolución.</span></div>`;
+ const metricRows=players.map(p=>`<div><span style="color:${p.color}">${esc(p.name)}</span><b>${(st[p.key]||0).toLocaleString('es-ES')} pasos</b><small>${(sw[p.key]||0).toLocaleString('es-ES')} largos</small></div>`).join('');
+ return topHeader()+`<main class="ux-home">
+  <section class="ux-home-welcome"><div><span class="ux-kicker">TU ESPACIO DE ENTRENAMIENTO</span><h1>¡HOLA, ${esc((currentProfile?.name||currentName()).toUpperCase())}!</h1><p>Un día más para moverte, mejorar y sumar.</p></div><div class="ux-home-xp"><small>TU XP</small><strong>${xp}</strong></div></section>
+  <button class="ux-home-primary" onclick="go('exercises')"><span class="ux-home-primary-icon">＋</span><span><small>¿LISTA PARA ENTRENAR?</small><strong>EMPEZAR ENTRENAMIENTO</strong></span><b>→</b></button>
+  <section class="ux-home-section"><div class="ux-home-section-head"><div><span class="ux-kicker">RESUMEN SEMANAL</span><h2>Tu semana en GymSis</h2></div><span class="ux-home-date">${wr.start.slice(5)} — ${wr.end.slice(5)}</span></div>
+   <div class="ux-home-stats"><div><strong>${weekMine}</strong><span>REGISTROS</span></div><div><strong>${myRoutines}</strong><span>RUTINAS</span></div><div><strong>${unlocked}</strong><span>LOGROS</span></div></div>
+   <button class="ux-home-duel" onclick="go('duel')"><div class="ux-home-duel-head"><span>⚡ DUELO SEMANAL</span><b>VER DETALLE →</b></div><div class="ux-home-score">${scores}</div><small>Solo cuentan los ejercicios registrados por las dos participantes.</small></button>
+  </section>
+  <section class="ux-home-section"><div class="ux-home-section-head"><div><span class="ux-kicker">ACCESOS RÁPIDOS</span><h2>¿Qué quieres hacer?</h2></div></div>
+   <div class="ux-home-actions">
+    <button onclick="go('routines')"><span>▤</span><b>Mis rutinas</b><small>Entrena con tu plan</small></button>
+    <button onclick="go('progress')"><span>↗</span><b>Mi progreso</b><small>Revisa tus marcas</small></button>
+    <button onclick="go('v21achievements')"><span>✦</span><b>Logros y XP</b><small>${unlocked} insignias desbloqueadas</small></button>
+    <button onclick="go('calendar')"><span>▦</span><b>Calendario</b><small>Organiza tu actividad</small></button>
+    <button onclick="go('steps')"><span>👟</span><b>Registrar pasos</b><small>${(st[gymsibsPlayer(currentUser.id)]||0).toLocaleString('es-ES')} esta semana</small></button>
+    <button onclick="go('swimming')"><span>≈</span><b>Natación</b><small>${(sw[gymsibsPlayer(currentUser.id)]||0).toLocaleString('es-ES')} largos esta semana</small></button>
+    <button onclick="go('pilates')"><span>◉</span><b>Pilates</b><small>Registra tus clases</small></button>
+    <button onclick="go('exercises')"><span>＋</span><b>Ejercicios</b><small>Explora tu catálogo</small></button>
+   </div>
+  </section>
+  <section class="ux-home-section"><div class="ux-home-section-head"><div><span class="ux-kicker">SIGUE TU EVOLUCIÓN</span><h2>Actividad reciente</h2></div></div>${lastCard}</section>
+  <section class="ux-home-metrics"><div><span class="ux-kicker">MOVIMIENTO DE LA SEMANA</span><h2>Más que pesas</h2></div>${metricRows}</section>
+ </main>`;
+};
+
 const v21OriginalRender=render;
 render=function(){if(!currentUser||loading){return v21OriginalRender()}if(screen==='routines'){document.getElementById('app').innerHTML=v21Routines();return}if(screen==='v21achievements'){document.getElementById('app').innerHTML=v21Achievements();return}if(screen==='rewards'){document.getElementById('app').innerHTML=v21Rewards();return}if(screen==='stepbattle'){document.getElementById('app').innerHTML=v21StepBattle();return}return v21OriginalRender()};
 const v21OriginalMore=more;
