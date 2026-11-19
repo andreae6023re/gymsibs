@@ -17,3 +17,8 @@
 - El duelo concede XP al procesar el botón «CONCEDER PREMIO» en la pantalla Duelo. El índice único evita duplicar cada ejercicio/semana/participante.
 - La migración no borra ni modifica los registros históricos.
 - Los logros existentes se mantienen. La recuperación retroactiva de logros históricos y el cálculo automático de nuevos objetivos requieren una migración específica adicional; no se altera el progreso histórico en este paquete.
+
+
+## GymSis v24.2 · Guardado de rutinas
+
+Ejecuta `SUPABASE_GYMSIS_V24_2_RUTINAS.sql` en Supabase antes de publicar. Esta migración añade el vínculo único entre cada serie de rutina y el historial general para que las series se guarden una sola vez, y recupera series antiguas que sí estuvieran persistidas en Supabase. Consulta `README_GYMSIS_V24_2_RUTINAS.txt` para los detalles.
