@@ -491,23 +491,27 @@ function weeklyCompetition(range){
  const players=gymsibsPlayers();
  const totals=Object.fromEntries(players.map(p=>[p.key,{...p,wins:0,steps:0,swim:0}]));
  const rows={};
- // Se incluyen ejercicios activos y también los que tengan registros en la semana,
- // aunque se hayan archivado después: el historial nunca debe desaparecer del duelo.
- data.exercises.forEach(e=>rows[e.id]={name:e.name,icon:e.icon||'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))});
- const weekRecords=data.records.filter(w=>String(w.date||'').slice(0,10)>=range.start&&String(w.date||'').slice(0,10)<=range.end);
- weekRecords.forEach(w=>{
-   const key=gymsibsPlayer(w.user_id);
-   if(!key||!totals[key]||!w.exercise_id)return;
-   if(!rows[w.exercise_id])rows[w.exercise_id]={name:exerciseName(w.exercise_id),icon:'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))};
-   rows[w.exercise_id].values[key]=Math.max(rows[w.exercise_id].values[key],gymsibsWeight(w.weight));
+ // Comparar por nombre normalizado, no solo por UUID. Las rutinas y el registro
+ // manual pueden guardar IDs distintos para el mismo ejercicio; esto los unifica.
+ const exerciseKey=name=>String(name||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+ const ensureExercise=(name,icon='🏋️')=>{
+   const key=exerciseKey(name);if(!key)return null;
+   if(!rows[key])rows[key]={name:String(name||'Ejercicio').trim(),icon,values:Object.fromEntries(players.map(p=>[p.key,0]))};
+   return rows[key];
+ };
+ const inWeek=w=>{const d=String(w.date||'').slice(0,10);return d>=range.start&&d<=range.end};
+ // Registros manuales de Ara y entrenamientos de rutina ya sincronizados.
+ data.records.filter(inWeek).forEach(w=>{
+   const player=gymsibsPlayer(w.user_id),name=exerciseName(w.exercise_id),weight=gymsibsWeight(w.weight);
+   if(!player||!totals[player]||!name||weight<=0)return;
+   const row=ensureExercise(name);if(row)row.values[player]=Math.max(row.values[player],weight);
  });
- // Rutinas: incluir series persistidas en workout_session_sets aunque la sincronización
- // histórica a workouts no se completara. Solo pesan sets con kg y repeticiones reales.
- (data.routineRecords||[]).filter(w=>String(w.date||'').slice(0,10)>=range.start&&String(w.date||'').slice(0,10)<=range.end).forEach(w=>{
-   const key=gymsibsPlayer(w.user_id);
-   if(!key||!totals[key]||!w.exercise_id||gymsibsWeight(w.weight)<=0||Number(w.reps)<=0)return;
-   if(!rows[w.exercise_id])rows[w.exercise_id]={name:w.exercise_name||exerciseName(w.exercise_id),icon:'🏋️',values:Object.fromEntries(players.map(p=>[p.key,0]))};
-   rows[w.exercise_id].values[key]=Math.max(rows[w.exercise_id].values[key],gymsibsWeight(w.weight));
+ // Fuente original de las rutinas: incluye sesiones antiguas que no llegaron a
+ // sincronizarse en workouts. Se combina con la fuente manual por nombre.
+ (data.routineRecords||[]).filter(inWeek).forEach(w=>{
+   const player=gymsibsPlayer(w.user_id),name=w.exercise_name||exerciseName(w.exercise_id),weight=gymsibsWeight(w.weight);
+   if(!player||!totals[player]||!name||weight<=0||Number(w.reps)<=0)return;
+   const row=ensureExercise(name);if(row)row.values[player]=Math.max(row.values[player],weight);
  });
  data.steps.filter(x=>String(x.date||'').slice(0,10)>=range.start&&String(x.date||'').slice(0,10)<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].steps+=Number(x.steps)||0;});
  data.swimming.filter(x=>String(x.date||'').slice(0,10)>=range.start&&String(x.date||'').slice(0,10)<=range.end).forEach(x=>{const k=gymsibsPlayer(x.user_id);if(k&&totals[k])totals[k].swim+=Math.max(0,Math.floor(Number(x.lengths)||0));});
