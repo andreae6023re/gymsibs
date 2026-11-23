@@ -714,7 +714,8 @@ if(sb){sb.auth.getSession().then(x=>handleSession(x.data.session)).catch(err=>{c
 const gymsibsV21={routines:[],routineExercises:[],sessions:[],sessionSets:[],achievements:[],userAchievements:[],xp:[],rewards:[],redemptions:[],challenges:[],participants:[],battles:[],battleResults:[]};
 async function v21Load(){
  const specs=[['routines','routines','*'],['routineExercises','routine_exercises','*'],['sessions','workout_sessions','*'],['sessionSets','workout_session_sets','*'],['achievements','achievements','*'],['userAchievements','user_achievements','*'],['xp','xp_transactions','*'],['rewards','rewards','*'],['redemptions','reward_redemptions','*'],['challenges','custom_challenges','*'],['participants','challenge_participants','*'],['battles','step_battles','*'],['battleResults','step_battle_results','*']];
- await Promise.all(specs.map(async ([k,t,c])=>{try{const {data,error}=await sb.from(t).select(c);if(!error)gymsibsV21[k]=data||[];else console.warn('V21 '+t,error.message)}catch(e){console.warn(e)}}));
+ const fetchAllV21Rows=async(table,columns)=>{const pageSize=1000;let from=0,all=[];while(true){const {data,error}=await sb.from(table).select(columns).range(from,from+pageSize-1);if(error)throw error;all=all.concat(data||[]);if(!data||data.length<pageSize)break;from+=pageSize;}return all;};
+ await Promise.all(specs.map(async ([k,t,c])=>{try{gymsibsV21[k]=await fetchAllV21Rows(t,c);}catch(e){console.error('V21 '+t+' carga incompleta:',e.message);gymsibsV21[k]=[];}}));
  // Normaliza los sets de rutinas a registros compatibles con el cálculo del duelo.
  const sessionsById=new Map((gymsibsV21.sessions||[]).map(x=>[x.id,x]));
  data.routineRecords=(gymsibsV21.sessionSets||[]).flatMap(set=>{
