@@ -1,4 +1,4 @@
-const CACHE='gymsis-v24.4-duel-routine-source';
+const CACHE='gymsis-v24.5-paginated-routine-duel';
 const ASSETS=[
   './',
   './index.html',
