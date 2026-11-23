@@ -1,22 +1,24 @@
-# GymSis
+# GymSis · actualización XP y marca de app
 
-Aplicación web instalable (PWA) para registrar entrenamientos, rutinas, ejercicios, pasos, natación, pilates, progreso, logros y duelo entre Ara y Andrea.
+## Cambios incluidos
+- Nombre de la aplicación actualizado a GymSis (título, manifest y caché PWA).
+- Duelo semanal: 20 XP por cada ejercicio ganado; 10 XP para cada participante en empate. No premia pasos ni natación como si fueran ejercicios.
+- Rutina: 10 XP al finalizar una sesión, una sola vez por sesión.
+- Pasos: 5 XP por día al registrar más de 8.000 pasos (8.000 exactos no cuentan), una sola vez por usuario y fecha.
+- Identificadores de premio (`award_key`) para evitar duplicados.
 
-## Archivos principales
+## Instalación
+1. En Supabase > SQL Editor, ejecutar `SUPABASE_GYMSIS_XP.sql` una sola vez.
+2. Sustituir en GitHub los archivos del ZIP, conservando la estructura de raíz del repositorio.
+3. Hacer commit y recargar GymSis. Si está instalada como PWA, cerrar y volver a abrir para actualizar la caché.
 
-- `index.html`: aplicación y lógica de interfaz.
-- `manifest.webmanifest`: configuración de la PWA.
-- `service-worker.js`: caché offline y actualización de la aplicación.
-- `favicon-32.png`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`: iconos utilizados por navegador e instalación.
+## Importante
+- Los premios por rutinas y pasos empiezan a contar desde esta versión; no se recupera actividad anterior.
+- El duelo concede XP al procesar el botón «CONCEDER PREMIO» en la pantalla Duelo. El índice único evita duplicar cada ejercicio/semana/participante.
+- La migración no borra ni modifica los registros históricos.
+- Los logros existentes se mantienen. La recuperación retroactiva de logros históricos y el cálculo automático de nuevos objetivos requieren una migración específica adicional; no se altera el progreso histórico en este paquete.
 
-## Documentación y SQL
 
-Los historiales de versiones y las migraciones SQL se conservan en `docs/`:
-- `docs/releases/`: notas de versiones.
-- `docs/supabase/`: scripts SQL históricos y de configuración.
+## GymSis v24.2 · Guardado de rutinas
 
-Antes de ejecutar una migración, comprueba su versión y las instrucciones correspondientes. No ejecutes scripts antiguos como si fueran una actualización nueva.
-
-## Publicación
-
-La aplicación se sirve desde la raíz del repositorio. Mantén en la raíz `index.html`, `manifest.webmanifest`, `service-worker.js` y los cuatro iconos. El service worker precarga únicamente estos recursos, evitando fallos de instalación por referencias a archivos antiguos.
+Ejecuta `SUPABASE_GYMSIS_V24_2_RUTINAS.sql` en Supabase antes de publicar. Esta migración añade el vínculo único entre cada serie de rutina y el historial general para que las series se guarden una sola vez, y recupera series antiguas que sí estuvieran persistidas en Supabase. Consulta `README_GYMSIS_V24_2_RUTINAS.txt` para los detalles.

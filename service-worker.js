@@ -1,4 +1,4 @@
-const CACHE='gymsis-v24.3-cleanup';
+const CACHE='gymsis-v24.4-duel-routine-source';
 const ASSETS=[
   './',
   './index.html',
