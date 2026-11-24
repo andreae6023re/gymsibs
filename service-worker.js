@@ -1,4 +1,4 @@
-const CACHE='gymsis-v24.7-show-unmatched-exercises';
+const CACHE='gymsis-v24.8-only-mutual-duel-exercises';
 const ASSETS=[
   './',
   './index.html',
